@@ -155,11 +155,17 @@
       });
     }
 
-    setInterval(updateCountdowns, 1000); // update countdowns every second
+    setInterval(updateCountdowns, 1000);
+
+    function getDuration(msg) {
+      if (msg.sender === "System") return 30000;
+      if (msg.sender === "DevBot") return 10000;
+      return 10000; // default user message duration
+    }
 
     function addMessage(msg, key) {
       const now = Date.now();
-      const duration = msg.sender === "DevBot" ? 20000 : 5000;
+      const duration = getDuration(msg);
       const timeLeft = duration - (now - msg.timestamp);
       if (timeLeft <= 0) return;
 
@@ -232,8 +238,8 @@
       db.ref("voidMessages").push(msg);
     }
 
-    setInterval(sendSystemMessage, 10000); // every 10s
-    setInterval(sendDevMessage, 60000);    // every 60s
+    setInterval(sendSystemMessage, 15000); // every 15s
+    setInterval(sendDevMessage, 45000);    // every 45s
   </script>
 </body>
 </html>

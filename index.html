@@ -2,203 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>The Void</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VOID</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      background: black;
+      background-color: black;
       color: white;
-      font-family: Arial, sans-serif;
+      font-family: sans-serif;
       text-align: center;
-      padding: 20px;
-    }
-    #messages {
-      margin-top: 20px;
-    }
-    .message {
-      margin: 10px auto;
-      padding: 10px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 5px;
-      width: 90%;
-      max-width: 600px;
-      opacity: 0;
-      transform: translateY(20px);
-      animation: fadeIn 0.5s forwards;
-    }
-    @keyframes fadeIn {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    .timer {
-      font-size: 0.8em;
-      color: gray;
-    }
-    button.save-btn {
-      background: gray;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      margin-top: 5px;
-      cursor: pointer;
-    }
-    #vault {
-      margin-top: 20px;
-      display: none;
-      background: #111;
-      border: 1px solid #222;
-      padding: 20px;
-      color: #ccc;
-      border-radius: 5px;
-    }
-    button#toggleVault {
-      background: #333;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      margin-top: 20px;
-      cursor: pointer;
+      padding-top: 10%;
     }
   </style>
+  <!-- Firebase SDKs -->
+  <script type="module">
+    // Import Firebase modules from CDN
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
+      authDomain: "void-d9ec4.firebaseapp.com",
+      projectId: "void-d9ec4",
+      storageBucket: "void-d9ec4.firebasestorage.app",
+      messagingSenderId: "267268035851",
+      appId: "1:267268035851:web:1e5ab79c51db42160f3e0e",
+      measurementId: "G-ZYMQ3Z6LC5"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    console.log("Firebase connected:", app);
+  </script>
 </head>
 <body>
-
-<h1>Welcome to the Void</h1>
-
-<input type="text" id="messageInput" placeholder="Type your message..." style="width:80%; max-width:500px; padding:10px;">
-<br><br>
-<button onclick="sendMessage()">Send</button>
-
-<div id="messages"></div>
-
-<button id="toggleVault" onclick="toggleVault()">Open Vault</button>
-<div id="vault"></div>
-
-<!-- Firebase SDKs for browser -->
-<script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
-
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
-    authDomain: "void-d9ec4.firebaseapp.com",
-    projectId: "void-d9ec4",
-    storageBucket: "void-d9ec4.appspot.com",
-    messagingSenderId: "267268035851",
-    appId: "1:267268035851:web:d535fe4175c06f170f3e0e",
-    measurementId: "G-78DGNW8HV3"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-
-  function getIP() {
-    return localStorage.getItem("userIP") || Math.random().toString(36).substring(2);
-  }
-  if (!localStorage.getItem("userIP")) {
-    localStorage.setItem("userIP", getIP());
-  }
-
-  async function sendMessage() {
-    const input = document.getElementById("messageInput");
-    const text = input.value.trim();
-    if (!text) return;
-    await db.collection("messages").add({
-      text: text,
-      createdAt: Date.now()
-    });
-    input.value = "";
-  }
-
-  function renderMessage(doc) {
-    const div = document.createElement("div");
-    div.className = "message";
-    div.innerHTML = `
-      <div>${doc.data().text}</div>
-      <div class="timer" id="timer-${doc.id}"></div>
-      <button class="save-btn" onclick="saveToVault('${doc.id}', '${doc.data().text.replace(/'/g, "\\'")}')">Save to Vault</button>
-    `;
-    document.getElementById("messages").appendChild(div);
-
-    let timeLeft = 60 - Math.floor((Date.now() - doc.data().createdAt) / 1000);
-    updateTimer(doc.id, timeLeft);
-
-    const interval = setInterval(() => {
-      timeLeft--;
-      updateTimer(doc.id, timeLeft);
-      if (timeLeft <= 0) {
-        clearInterval(interval);
-        div.remove();
-        db.collection("messages").doc(doc.id).delete();
-      }
-    }, 1000);
-  }
-
-  function updateTimer(id, timeLeft) {
-    const timer = document.getElementById(`timer-${id}`);
-    if (timer) {
-      timer.textContent = `Disappears in ${timeLeft}s`;
-    }
-  }
-
-  db.collection("messages").orderBy("createdAt")
-    .onSnapshot(snapshot => {
-      document.getElementById("messages").innerHTML = "";
-      snapshot.forEach(doc => {
-        renderMessage(doc);
-      });
-    });
-
-  async function saveToVault(messageId, text) {
-    const ip = getIP();
-    const q = await db.collection("vault")
-      .where("messageId", "==", messageId)
-      .where("ip", "==", ip)
-      .get();
-
-    if (!q.empty) {
-      alert("You already saved this message.");
-      return;
-    }
-
-    await db.collection("vault").add({
-      text: text,
-      savedAt: Date.now(),
-      ip: ip,
-      messageId: messageId
-    });
-    alert("Saved to Vault!");
-  }
-
-  let vaultOpen = false;
-
-  function toggleVault() {
-    const vault = document.getElementById("vault");
-    if (!vaultOpen) {
-      vault.style.display = "block";
-      loadVault();
-      document.getElementById("toggleVault").innerText = "Close Vault";
-    } else {
-      vault.style.display = "none";
-      document.getElementById("toggleVault").innerText = "Open Vault";
-    }
-    vaultOpen = !vaultOpen;
-  }
-
-  async function loadVault() {
-    const vault = document.getElementById("vault");
-    vault.innerHTML = "<h2>Vault</h2>";
-    const snapshot = await db.collection("vault").orderBy("savedAt", "desc").get();
-    snapshot.forEach(doc => {
-      const div = document.createElement("div");
-      div.className = "message";
-      div.innerText = doc.data().text;
-      vault.appendChild(div);
-    });
-  }
-</script>
-
+  <h1>VOID is Live</h1>
+  <p>Firebase is connected successfully.</p>
 </body>
 </html>

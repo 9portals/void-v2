@@ -23,6 +23,32 @@
       font-size: 28px;
       font-weight: bold;
       border-bottom: 1px solid #444;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #navToggle {
+      cursor: pointer;
+      font-size: 28px;
+      margin-left: 12px;
+    }
+
+    #navMenu {
+      display: none;
+      margin-top: 10px;
+      font-family: monospace;
+      color: white;
+      text-align: center;
+    }
+
+    #navMenu div {
+      margin: 4px 0;
+      cursor: pointer;
+    }
+
+    #navMenu div:hover {
+      text-decoration: underline;
     }
 
     #subtitle {
@@ -97,7 +123,19 @@
 </head>
 <body>
 
-  <header>VOID — Global Chat</header>
+  <header>
+    VOID — Global Chat
+    <span id="navToggle" onclick="toggleNav()">≡</span>
+  </header>
+
+  <div id="navMenu">
+    <div>Enter the Abyss</div>
+    <div>Echoes</div>
+    <div>Void Profiles</div>
+    <div>Dark Messenger</div>
+    <div>System Core</div>
+  </div>
+
   <div id="subtitle">Say something in the void...</div>
 
   <div id="inputContainer">
@@ -108,6 +146,11 @@
   <div id="chat"></div>
 
   <script>
+    function toggleNav() {
+      const menu = document.getElementById("navMenu");
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    }
+
     const firebaseConfig = {
       apiKey: "AIzaSyClW4zHDde1rQm6RkHQcD2rM0sklBBgdrM",
       authDomain: "void-d9ec4.firebaseapp.com",

@@ -10,18 +10,23 @@
       background-color: black;
       color: white;
       font-family: monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
+      overflow: hidden;
     }
     #chat-container {
-      margin-top: 30vh;
-      width: 90%;
-      max-width: 600px;
+      position: relative;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
     }
     #messages {
-      margin-bottom: 20px;
+      position: absolute;
+      top: 80px; /* reserve top space for future header/nav */
+      width: 90%;
+      max-width: 600px;
       display: flex;
       flex-direction: column-reverse;
       gap: 10px;
@@ -40,16 +45,19 @@
       right: 10px;
     }
     #input-area {
+      margin-top: auto;
       display: flex;
-      justify-content: center;
       gap: 10px;
+      width: 90%;
+      max-width: 600px;
+      z-index: 1;
     }
     input[type="text"] {
+      flex: 1;
       background: black;
       color: white;
       border: 2px solid #555;
       padding: 10px;
-      width: 70%;
       font-size: 1em;
       border-radius: 3px;
     }
@@ -135,7 +143,6 @@
     const q = query(messagesRef, orderBy("timestamp", "desc"));
     onSnapshot(q, snapshot => {
       const docs = snapshot.docs.filter(d => d.data().timestamp);
-      // If there are more than 10 messages, remove the one closest to expiring
       if (docs.length > 10) {
         let soonestId = null;
         let soonestTime = Infinity;

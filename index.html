@@ -8,15 +8,73 @@
     body {
       background-color: black;
       color: white;
-      font-family: sans-serif;
-      text-align: center;
-      padding-top: 10%;
+      font-family: monospace;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #chat-container {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column-reverse;
+    }
+
+    .message {
+      margin-bottom: 10px;
+      opacity: 1;
+      transition: opacity 1s ease-out;
+    }
+
+    .auto {
+      color: #33ccff;
+    }
+
+    #input-container {
+      padding: 10px;
+      display: flex;
+      background: #111;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      font-size: 1em;
+      background: #222;
+      color: white;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      background: #444;
+      color: white;
+      cursor: pointer;
+    }
+
+    a.auto-link {
+      color: #33ccff;
+      text-decoration: underline;
     }
   </style>
-  <!-- Firebase SDKs -->
+</head>
+<body>
+  <div id="chat-container"></div>
+  <div id="input-container">
+    <input type="text" id="messageInput" placeholder="Speak into the VOID..." maxlength="300" />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <!-- Firebase SDK -->
   <script type="module">
-    // Import Firebase modules from CDN
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
@@ -28,13 +86,70 @@
       measurementId: "G-ZYMQ3Z6LC5"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
-    console.log("Firebase connected:", app);
+    const db = getFirestore(app);
+
+    const messagesRef = collection(db, "messages");
+
+    async function sendMessage(text = null, isAuto = false) {
+      const messageText = text || document.getElementById("messageInput").value.trim();
+      if (!messageText) return;
+      await addDoc(messagesRef, {
+        text: messageText,
+        timestamp: serverTimestamp(),
+        isAuto: isAuto
+      });
+      if (!isAuto) document.getElementById("messageInput").value = "";
+    }
+
+    const chatContainer = document.getElementById("chat-container");
+
+    const q = query(messagesRef, orderBy("timestamp", "desc"));
+    onSnapshot(q, (snapshot) => {
+      chatContainer.innerHTML = "";
+      const now = Date.now();
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (!data.timestamp) return;
+        const timeDiff = now - data.timestamp.toDate().getTime();
+        if (timeDiff > 60000) return;
+
+        const div = document.createElement("div");
+        div.className = "message" + (data.isAuto ? " auto" : "");
+        div.textContent = data.text;
+
+        if (data.isAuto && data.text.includes("http")) {
+          const link = document.createElement("a");
+          link.href = data.text;
+          link.textContent = "[link]";
+          link.className = "auto-link";
+          link.target = "_blank";
+          div.appendChild(document.createTextNode(" "));
+          div.appendChild(link);
+        }
+
+        chatContainer.appendChild(div);
+
+        setTimeout(() => {
+          div.style.opacity = 0;
+        }, 59000);
+      });
+    });
+
+    // Auto message every 2 minutes
+    const autoMessages = [
+      "You are not alone in the VOID.",
+      "What echoes back may change you.",
+      "Follow the link: https://void-v2.vercel.app",
+      "Silence speaks louder here.",
+      "Truth is buried in darkness."
+    ];
+
+    setInterval(() => {
+      const msg = autoMessages[Math.floor(Math.random() * autoMessages.length)];
+      sendMessage(msg, true);
+    }, 2 * 60 * 1000);
   </script>
-</head>
-<body>
-  <h1>VOID is Live</h1>
-  <p>...connected successfully.</p>
 </body>
 </html>
+

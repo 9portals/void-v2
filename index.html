@@ -66,9 +66,10 @@
     #chat {
       flex: 1;
       display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
+      flex-direction: column; /* top to bottom */
+      justify-content: flex-start;
       padding: 10px 20px;
+      overflow: hidden;
     }
 
     .message {
@@ -83,6 +84,10 @@
 
     .system {
       color: #4da6ff;
+    }
+
+    .dev {
+      color: orange;
     }
   </style>
 
@@ -129,6 +134,7 @@
           const div = document.createElement("div");
           div.className = "message";
           if (msg.sender === "System") div.classList.add("system");
+          if (msg.sender === "DevBot") div.classList.add("dev");
           div.textContent = `${msg.sender}: ${msg.text}`;
           chatDiv.appendChild(div);
         });
@@ -136,11 +142,12 @@
 
     function addMessage(msg, key) {
       const now = Date.now();
-      const timeLeft = 5000 - (now - msg.timestamp);
-      if (timeLeft <= 0) return; // Already expired
+      const duration = msg.sender === "DevBot" ? 20000 : 5000;
+      const timeLeft = duration - (now - msg.timestamp);
+      if (timeLeft <= 0) return;
 
       msg.key = key;
-      msg.expiresAt = msg.timestamp + 5000;
+      msg.expiresAt = msg.timestamp + duration;
 
       localMessages.push(msg);
       if (localMessages.length > 10) {
@@ -156,7 +163,6 @@
       }, timeLeft);
     }
 
-    // Incoming messages
     db.ref("voidMessages").on("child_added", snapshot => {
       addMessage(snapshot.val(), snapshot.key);
     });
@@ -166,7 +172,6 @@
       renderMessages();
     });
 
-    // Send message
     sendButton.onclick = () => {
       const text = input.value.trim();
       if (text !== "") {
@@ -180,8 +185,8 @@
       }
     };
 
-    // Auto-message every 10s
-    function sendAutoMessage() {
+    // Auto-message every 10s (5s life)
+    function sendSystemMessage() {
       const phrases = [
         "The void whispers...",
         "A ripple echoes.",
@@ -197,7 +202,23 @@
       db.ref("voidMessages").push(msg);
     }
 
-    setInterval(sendAutoMessage, 10000);
+    // Dev update every 60s (20s life)
+    function sendDevMessage() {
+      const devUpdates = [
+        "We are currently developing...",
+        "Features are being built in the void...",
+        "Development is in progress..."
+      ];
+      const msg = {
+        text: devUpdates[Math.floor(Math.random() * devUpdates.length)],
+        timestamp: Date.now(),
+        sender: "DevBot"
+      };
+      db.ref("voidMessages").push(msg);
+    }
+
+    setInterval(sendSystemMessage, 10000); // every 10s
+    setInterval(sendDevMessage, 60000);    // every 60s
   </script>
 </body>
 </html>

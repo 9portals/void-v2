@@ -16,12 +16,12 @@
       min-height: 100vh;
     }
     #chat-container {
-      margin-top: 15vh;
+      margin-top: 30vh;
       width: 90%;
       max-width: 600px;
     }
     #messages {
-      margin-top: 20px;
+      margin-bottom: 20px;
       display: flex;
       flex-direction: column-reverse;
       gap: 10px;
@@ -41,7 +41,6 @@
     }
     #input-area {
       display: flex;
-      margin-top: 30px;
       justify-content: center;
       gap: 10px;
     }
@@ -75,7 +74,17 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      query,
+      orderBy,
+      onSnapshot,
+      serverTimestamp,
+      deleteDoc,
+      doc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
@@ -106,12 +115,46 @@
       }
     });
 
+    const timers = new Map();
+
+    function startCountdown(docId, messageEl, timeLeft) {
+      const countdownEl = messageEl.querySelector(".countdown");
+      const timer = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          messageEl.remove();
+          deleteDoc(doc(db, "messages", docId));
+        } else {
+          countdownEl.textContent = `${timeLeft}s`;
+        }
+      }, 1000);
+      timers.set(docId, timer);
+    }
+
     const q = query(messagesRef, orderBy("timestamp", "desc"));
     onSnapshot(q, snapshot => {
+      const docs = snapshot.docs.filter(d => d.data().timestamp);
+      // If there are more than 10 messages, remove the one closest to expiring
+      if (docs.length > 10) {
+        let soonestId = null;
+        let soonestTime = Infinity;
+        docs.forEach(d => {
+          const timeLeft = 60 - Math.floor((Date.now() - d.data().timestamp.toDate()) / 1000);
+          if (timeLeft < soonestTime) {
+            soonestTime = timeLeft;
+            soonestId = d.id;
+          }
+        });
+        if (soonestId) {
+          deleteDoc(doc(db, "messages", soonestId));
+        }
+      }
+
       messagesDiv.innerHTML = "";
-      snapshot.forEach(docSnap => {
+
+      docs.forEach(docSnap => {
         const data = docSnap.data();
-        if (!data.timestamp) return;
         const timeDiff = 60 - Math.floor((Date.now() - data.timestamp.toDate()) / 1000);
         if (timeDiff <= 0) {
           deleteDoc(doc(db, "messages", docSnap.id));
@@ -122,24 +165,11 @@
         messageEl.classList.add("message");
         messageEl.innerHTML = `<span>${data.text}</span><span class="countdown">${timeDiff}s</span>`;
         messagesDiv.appendChild(messageEl);
-
-        // Countdown
-        const countdownEl = messageEl.querySelector(".countdown");
-        let timeLeft = timeDiff;
-        const timer = setInterval(() => {
-          timeLeft--;
-          if (timeLeft <= 0) {
-            clearInterval(timer);
-            messageEl.remove();
-            deleteDoc(doc(db, "messages", docSnap.id));
-          } else {
-            countdownEl.textContent = `${timeLeft}s`;
-          }
-        }, 1000);
+        startCountdown(docSnap.id, messageEl, timeDiff);
       });
     });
 
-    // Auto message every 2 mins
+    // Auto message every 2 minutes
     setInterval(async () => {
       const phrases = [
         'A whisper echoes. <a href="#">(void whisper)</a>',

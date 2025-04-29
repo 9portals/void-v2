@@ -66,7 +66,7 @@
     #chat {
       flex: 1;
       display: flex;
-      flex-direction: column; /* top to bottom */
+      flex-direction: column;
       justify-content: flex-start;
       padding: 10px 20px;
       overflow: hidden;
@@ -128,17 +128,34 @@
 
     function renderMessages() {
       chatDiv.innerHTML = "";
+      const now = Date.now();
       localMessages
         .sort((a, b) => a.expiresAt - b.expiresAt)
         .forEach(msg => {
+          const secondsLeft = Math.max(0, Math.ceil((msg.expiresAt - now) / 1000));
           const div = document.createElement("div");
           div.className = "message";
           if (msg.sender === "System") div.classList.add("system");
           if (msg.sender === "DevBot") div.classList.add("dev");
-          div.textContent = `${msg.sender}: ${msg.text}`;
+          div.setAttribute("data-key", msg.key);
+          div.textContent = `${msg.sender}: ${msg.text} (${secondsLeft}s)`;
           chatDiv.appendChild(div);
         });
     }
+
+    function updateCountdowns() {
+      const now = Date.now();
+      document.querySelectorAll(".message").forEach(div => {
+        const key = div.getAttribute("data-key");
+        const msg = localMessages.find(m => m.key === key);
+        if (msg) {
+          const secondsLeft = Math.max(0, Math.ceil((msg.expiresAt - now) / 1000));
+          div.textContent = `${msg.sender}: ${msg.text} (${secondsLeft}s)`;
+        }
+      });
+    }
+
+    setInterval(updateCountdowns, 1000); // update countdowns every second
 
     function addMessage(msg, key) {
       const now = Date.now();
@@ -185,7 +202,6 @@
       }
     };
 
-    // Auto-message every 10s (5s life)
     function sendSystemMessage() {
       const phrases = [
         "The void whispers...",
@@ -202,7 +218,6 @@
       db.ref("voidMessages").push(msg);
     }
 
-    // Dev update every 60s (20s life)
     function sendDevMessage() {
       const devUpdates = [
         "We are currently developing...",

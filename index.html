@@ -1,80 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>VOID</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>VOID Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
+      margin: 0;
       background-color: black;
       color: white;
       font-family: monospace;
-      margin: 0;
-      padding: 0;
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
+      align-items: center;
+      min-height: 100vh;
     }
-
     #chat-container {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
+      margin-top: 15vh;
+      width: 90%;
+      max-width: 600px;
+    }
+    #messages {
+      margin-top: 20px;
       display: flex;
       flex-direction: column-reverse;
+      gap: 10px;
     }
-
     .message {
-      margin-bottom: 10px;
-      opacity: 1;
-      transition: opacity 1s ease-out;
-    }
-
-    .auto {
-      color: #33ccff;
-    }
-
-    #input-container {
+      background: rgba(255, 255, 255, 0.1);
       padding: 10px;
+      border-radius: 5px;
+      position: relative;
+    }
+    .countdown {
+      font-size: 0.8em;
+      color: #888;
+      position: absolute;
+      bottom: 5px;
+      right: 10px;
+    }
+    #input-area {
       display: flex;
-      background: #111;
+      margin-top: 30px;
+      justify-content: center;
+      gap: 10px;
     }
-
-    input {
-      flex: 1;
+    input[type="text"] {
+      background: black;
+      color: white;
+      border: 2px solid #555;
       padding: 10px;
-      border: none;
+      width: 70%;
       font-size: 1em;
-      background: #222;
-      color: white;
+      border-radius: 3px;
     }
-
     button {
-      padding: 10px;
-      border: none;
-      background: #444;
+      background: #111;
       color: white;
+      border: 2px solid #444;
+      padding: 10px 15px;
       cursor: pointer;
+      font-size: 1em;
+      border-radius: 3px;
     }
-
-    a.auto-link {
-      color: #33ccff;
-      text-decoration: underline;
+    button:hover {
+      background: #222;
+    }
+    a {
+      color: #3399ff;
+      text-decoration: none;
     }
   </style>
-</head>
-<body>
-  <div id="chat-container"></div>
-  <div id="input-container">
-    <input type="text" id="messageInput" placeholder="Speak into the VOID..." maxlength="300" />
-    <button onclick="sendMessage()">Send</button>
-  </div>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
@@ -88,68 +89,80 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-
     const messagesRef = collection(db, "messages");
 
-    async function sendMessage(text = null, isAuto = false) {
-      const messageText = text || document.getElementById("messageInput").value.trim();
-      if (!messageText) return;
-      await addDoc(messagesRef, {
-        text: messageText,
-        timestamp: serverTimestamp(),
-        isAuto: isAuto
-      });
-      if (!isAuto) document.getElementById("messageInput").value = "";
-    }
+    const input = document.getElementById("messageInput");
+    const messagesDiv = document.getElementById("messages");
 
-    const chatContainer = document.getElementById("chat-container");
+    document.getElementById("sendButton").addEventListener("click", async () => {
+      const text = input.value.trim();
+      if (text !== "") {
+        await addDoc(messagesRef, {
+          text: text,
+          timestamp: serverTimestamp(),
+          isAuto: false
+        });
+        input.value = "";
+      }
+    });
 
     const q = query(messagesRef, orderBy("timestamp", "desc"));
-    onSnapshot(q, (snapshot) => {
-      chatContainer.innerHTML = "";
-      const now = Date.now();
-      snapshot.forEach((doc) => {
-        const data = doc.data();
+    onSnapshot(q, snapshot => {
+      messagesDiv.innerHTML = "";
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
         if (!data.timestamp) return;
-        const timeDiff = now - data.timestamp.toDate().getTime();
-        if (timeDiff > 60000) return;
-
-        const div = document.createElement("div");
-        div.className = "message" + (data.isAuto ? " auto" : "");
-        div.textContent = data.text;
-
-        if (data.isAuto && data.text.includes("http")) {
-          const link = document.createElement("a");
-          link.href = data.text;
-          link.textContent = "[link]";
-          link.className = "auto-link";
-          link.target = "_blank";
-          div.appendChild(document.createTextNode(" "));
-          div.appendChild(link);
+        const timeDiff = 60 - Math.floor((Date.now() - data.timestamp.toDate()) / 1000);
+        if (timeDiff <= 0) {
+          deleteDoc(doc(db, "messages", docSnap.id));
+          return;
         }
 
-        chatContainer.appendChild(div);
+        const messageEl = document.createElement("div");
+        messageEl.classList.add("message");
+        messageEl.innerHTML = `<span>${data.text}</span><span class="countdown">${timeDiff}s</span>`;
+        messagesDiv.appendChild(messageEl);
 
-        setTimeout(() => {
-          div.style.opacity = 0;
-        }, 59000);
+        // Countdown
+        const countdownEl = messageEl.querySelector(".countdown");
+        let timeLeft = timeDiff;
+        const timer = setInterval(() => {
+          timeLeft--;
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            messageEl.remove();
+            deleteDoc(doc(db, "messages", docSnap.id));
+          } else {
+            countdownEl.textContent = `${timeLeft}s`;
+          }
+        }, 1000);
       });
     });
 
-    // Auto message every 2 minutes
-    const autoMessages = [
-      "You are not alone in the VOID.",
-      "What echoes back may change you.",
-      "Follow the link: https://void-v2.vercel.app",
-      "Silence speaks louder here.",
-      "Truth is buried in darkness."
-    ];
-
-    setInterval(() => {
-      const msg = autoMessages[Math.floor(Math.random() * autoMessages.length)];
-      sendMessage(msg, true);
-    }, 2 * 60 * 1000);
+    // Auto message every 2 mins
+    setInterval(async () => {
+      const phrases = [
+        'A whisper echoes. <a href="#">(void whisper)</a>',
+        'The silence speaks. <a href="#">(click)</a>',
+        'From nothing, a thought... <a href="#">(see)</a>',
+        'You are not alone in the void. <a href="#">(visit)</a>'
+      ];
+      const random = phrases[Math.floor(Math.random() * phrases.length)];
+      await addDoc(messagesRef, {
+        text: random,
+        timestamp: serverTimestamp(),
+        isAuto: true
+      });
+    }, 120000);
   </script>
+</head>
+<body>
+  <div id="chat-container">
+    <div id="messages"></div>
+    <div id="input-area">
+      <input id="messageInput" type="text" placeholder="Say something into the void..." />
+      <button id="sendButton">Send</button>
+    </div>
+  </div>
 </body>
 </html>
-

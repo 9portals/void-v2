@@ -1,205 +1,163 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>VOID Chat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Void Global Chat</title>
   <style>
     body {
       margin: 0;
+      font-family: Arial, sans-serif;
       background-color: black;
       color: white;
-      font-family: monospace;
-      overflow: hidden;
-    }
-    #chat-container {
-      position: relative;
-      height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
-      align-items: center;
-      padding: 20px;
-      box-sizing: border-box;
+      height: 100vh;
     }
-    #messages {
-      position: absolute;
-      top: 80px; /* reserve top space for future header/nav */
-      width: 90%;
-      max-width: 600px;
-      display: flex;
-      flex-direction: column-reverse;
-      gap: 10px;
-    }
-    .message {
-      background: rgba(255, 255, 255, 0.1);
+
+    header {
       padding: 10px;
-      border-radius: 5px;
-      position: relative;
+      text-align: center;
+      background-color: #111;
+      font-size: 24px;
+      font-weight: bold;
+      border-bottom: 1px solid #444;
     }
-    .countdown {
-      font-size: 0.8em;
-      color: #888;
-      position: absolute;
-      bottom: 5px;
-      right: 10px;
-    }
-    #input-area {
-      margin-top: auto;
-      display: flex;
-      gap: 10px;
-      width: 90%;
-      max-width: 600px;
-      z-index: 1;
-    }
-    input[type="text"] {
+
+    #chat {
       flex: 1;
-      background: black;
-      color: white;
-      border: 2px solid #555;
+      overflow-y: auto;
       padding: 10px;
-      font-size: 1em;
-      border-radius: 3px;
     }
-    button {
-      background: #111;
+
+    .message {
+      margin: 5px 0;
+      padding: 5px 10px;
+      border-radius: 5px;
+      background-color: #222;
+    }
+
+    .system {
+      color: #4da6ff;
+    }
+
+    #inputContainer {
+      display: flex;
+      border-top: 1px solid #444;
+    }
+
+    #messageInput {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background-color: #111;
       color: white;
-      border: 2px solid #444;
-      padding: 10px 15px;
+    }
+
+    #sendButton {
+      padding: 10px 20px;
+      border: none;
+      background-color: #333;
+      color: white;
       cursor: pointer;
-      font-size: 1em;
-      border-radius: 3px;
     }
-    button:hover {
-      background: #222;
-    }
-    a {
-      color: #3399ff;
-      text-decoration: none;
+
+    #sendButton:hover {
+      background-color: #555;
     }
   </style>
-
   <!-- Firebase SDKs -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      addDoc,
-      query,
-      orderBy,
-      onSnapshot,
-      serverTimestamp,
-      deleteDoc,
-      doc
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
-      authDomain: "void-d9ec4.firebaseapp.com",
-      projectId: "void-d9ec4",
-      storageBucket: "void-d9ec4.firebasestorage.app",
-      messagingSenderId: "267268035851",
-      appId: "1:267268035851:web:1e5ab79c51db42160f3e0e",
-      measurementId: "G-ZYMQ3Z6LC5"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const messagesRef = collection(db, "messages");
-
-    const input = document.getElementById("messageInput");
-    const messagesDiv = document.getElementById("messages");
-
-    document.getElementById("sendButton").addEventListener("click", async () => {
-      const text = input.value.trim();
-      if (text !== "") {
-        await addDoc(messagesRef, {
-          text: text,
-          timestamp: serverTimestamp(),
-          isAuto: false
-        });
-        input.value = "";
-      }
-    });
-
-    const timers = new Map();
-
-    function startCountdown(docId, messageEl, timeLeft) {
-      const countdownEl = messageEl.querySelector(".countdown");
-      const timer = setInterval(() => {
-        timeLeft--;
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          messageEl.remove();
-          deleteDoc(doc(db, "messages", docId));
-        } else {
-          countdownEl.textContent = `${timeLeft}s`;
-        }
-      }, 1000);
-      timers.set(docId, timer);
-    }
-
-    const q = query(messagesRef, orderBy("timestamp", "desc"));
-    onSnapshot(q, snapshot => {
-      const docs = snapshot.docs.filter(d => d.data().timestamp);
-      if (docs.length > 10) {
-        let soonestId = null;
-        let soonestTime = Infinity;
-        docs.forEach(d => {
-          const timeLeft = 60 - Math.floor((Date.now() - d.data().timestamp.toDate()) / 1000);
-          if (timeLeft < soonestTime) {
-            soonestTime = timeLeft;
-            soonestId = d.id;
-          }
-        });
-        if (soonestId) {
-          deleteDoc(doc(db, "messages", soonestId));
-        }
-      }
-
-      messagesDiv.innerHTML = "";
-
-      docs.forEach(docSnap => {
-        const data = docSnap.data();
-        const timeDiff = 60 - Math.floor((Date.now() - data.timestamp.toDate()) / 1000);
-        if (timeDiff <= 0) {
-          deleteDoc(doc(db, "messages", docSnap.id));
-          return;
-        }
-
-        const messageEl = document.createElement("div");
-        messageEl.classList.add("message");
-        messageEl.innerHTML = `<span>${data.text}</span><span class="countdown">${timeDiff}s</span>`;
-        messagesDiv.appendChild(messageEl);
-        startCountdown(docSnap.id, messageEl, timeDiff);
-      });
-    });
-
-    // Auto message every 2 minutes
-    setInterval(async () => {
-      const phrases = [
-        'A whisper echoes. <a href="#">(void whisper)</a>',
-        'The silence speaks. <a href="#">(click)</a>',
-        'From nothing, a thought... <a href="#">(see)</a>',
-        'You are not alone in the void. <a href="#">(visit)</a>'
-      ];
-      const random = phrases[Math.floor(Math.random() * phrases.length)];
-      await addDoc(messagesRef, {
-        text: random,
-        timestamp: serverTimestamp(),
-        isAuto: true
-      });
-    }, 120000);
-  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
 </head>
 <body>
-  <div id="chat-container">
-    <div id="messages"></div>
-    <div id="input-area">
-      <input id="messageInput" type="text" placeholder="Say something into the void..." />
-      <button id="sendButton">Send</button>
-    </div>
+  <header>VOID — Global Chat</header>
+  <div id="chat"></div>
+  <div id="inputContainer">
+    <input type="text" id="messageInput" placeholder="Speak into the void..." />
+    <button id="sendButton">Send</button>
   </div>
+
+  <script>
+    // Firebase config for void-d9ec4
+    const firebaseConfig = {
+      apiKey: "AIzaSyClW4zHDde1rQm6RkHQcD2rM0sklBBgdrM",
+      authDomain: "void-d9ec4.firebaseapp.com",
+      databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
+      projectId: "void-d9ec4",
+      storageBucket: "void-d9ec4.appspot.com",
+      messagingSenderId: "267268035851",
+      appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const chatDiv = document.getElementById("chat");
+    const input = document.getElementById("messageInput");
+    const sendButton = document.getElementById("sendButton");
+
+    function addMessageElement(text, isSystem = false) {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message");
+      if (isSystem) msgDiv.classList.add("system");
+      msgDiv.textContent = text;
+      chatDiv.appendChild(msgDiv);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    // Send message
+    sendButton.onclick = () => {
+      const text = input.value.trim();
+      if (text !== "") {
+        const msg = {
+          text,
+          timestamp: Date.now(),
+          sender: "Anonymous"
+        };
+        db.ref("voidMessages").push(msg);
+        input.value = "";
+      }
+    };
+
+    // Load and auto-delete messages
+    db.ref("voidMessages").on("child_added", (snapshot) => {
+      const msg = snapshot.val();
+      const now = Date.now();
+      const age = now - msg.timestamp;
+
+      addMessageElement(`${msg.sender}: ${msg.text}`, msg.sender === "System");
+
+      // Remove after 60 seconds
+      setTimeout(() => {
+        db.ref("voidMessages").child(snapshot.key).remove();
+      }, 60000 - age);
+    });
+
+    // Remove from DOM when deleted
+    db.ref("voidMessages").on("child_removed", () => {
+      chatDiv.innerHTML = ""; // Reload all messages
+    });
+
+    // System message every 2 minutes
+    function sendSystemMessage() {
+      const phrases = [
+        "The void whispers back...",
+        "Another thought fades away.",
+        "You are not alone in the dark.",
+        "The silence is loud here.",
+        "Energy drifts across the black.",
+        "A presence lingers briefly."
+      ];
+      const randomText = phrases[Math.floor(Math.random() * phrases.length)];
+      const msg = {
+        text: randomText,
+        timestamp: Date.now(),
+        sender: "System"
+      };
+      db.ref("voidMessages").push(msg);
+    }
+
+    setInterval(sendSystemMessage, 120000); // Every 2 minutes
+  </script>
 </body>
 </html>

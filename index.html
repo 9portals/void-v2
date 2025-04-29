@@ -13,6 +13,7 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
+      overflow: hidden;
     }
 
     header {
@@ -64,7 +65,9 @@
 
     #chat {
       flex: 1;
-      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
       padding: 10px 20px;
     }
 
@@ -73,6 +76,9 @@
       padding: 8px 12px;
       border-radius: 5px;
       background-color: #222;
+      color: white;
+      opacity: 1;
+      transition: opacity 0.5s ease;
     }
 
     .system {
@@ -97,7 +103,6 @@
   <div id="chat"></div>
 
   <script>
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyClW4zHDde1rQm6RkHQcD2rM0sklBBgdrM",
       authDomain: "void-d9ec4.firebaseapp.com",
@@ -114,14 +119,52 @@
     const input = document.getElementById("messageInput");
     const sendButton = document.getElementById("sendButton");
 
-    function addMessageElement(text, isSystem = false) {
-      const msgDiv = document.createElement("div");
-      msgDiv.classList.add("message");
-      if (isSystem) msgDiv.classList.add("system");
-      msgDiv.textContent = text;
-      chatDiv.appendChild(msgDiv);
-      chatDiv.scrollTop = chatDiv.scrollHeight;
+    let localMessages = [];
+
+    function renderMessages() {
+      chatDiv.innerHTML = "";
+      localMessages
+        .sort((a, b) => a.expiresAt - b.expiresAt)
+        .forEach(msg => {
+          const div = document.createElement("div");
+          div.className = "message";
+          if (msg.sender === "System") div.classList.add("system");
+          div.textContent = `${msg.sender}: ${msg.text}`;
+          chatDiv.appendChild(div);
+        });
     }
+
+    function addMessage(msg, key) {
+      const now = Date.now();
+      const timeLeft = 5000 - (now - msg.timestamp);
+      if (timeLeft <= 0) return; // Already expired
+
+      msg.key = key;
+      msg.expiresAt = msg.timestamp + 5000;
+
+      localMessages.push(msg);
+      if (localMessages.length > 10) {
+        localMessages.sort((a, b) => a.expiresAt - b.expiresAt);
+        const removed = localMessages.shift();
+        db.ref("voidMessages").child(removed.key).remove();
+      }
+
+      renderMessages();
+
+      setTimeout(() => {
+        db.ref("voidMessages").child(key).remove();
+      }, timeLeft);
+    }
+
+    // Incoming messages
+    db.ref("voidMessages").on("child_added", snapshot => {
+      addMessage(snapshot.val(), snapshot.key);
+    });
+
+    db.ref("voidMessages").on("child_removed", snapshot => {
+      localMessages = localMessages.filter(msg => msg.key !== snapshot.key);
+      renderMessages();
+    });
 
     // Send message
     sendButton.onclick = () => {
@@ -137,45 +180,24 @@
       }
     };
 
-    // Load and auto-delete messages
-    db.ref("voidMessages").on("child_added", (snapshot) => {
-      const msg = snapshot.val();
-      const now = Date.now();
-      const age = now - msg.timestamp;
-
-      addMessageElement(`${msg.sender}: ${msg.text}`, msg.sender === "System");
-
-      // Remove after 60 seconds
-      setTimeout(() => {
-        db.ref("voidMessages").child(snapshot.key).remove();
-      }, 60000 - age);
-    });
-
-    // Refresh chat on message removal
-    db.ref("voidMessages").on("child_removed", () => {
-      chatDiv.innerHTML = "";
-    });
-
-    // System message every 2 minutes
-    function sendSystemMessage() {
+    // Auto-message every 10s
+    function sendAutoMessage() {
       const phrases = [
-        "The void whispers back...",
-        "Another thought fades away.",
-        "You are not alone in the dark.",
-        "The silence is loud here.",
-        "Energy drifts across the black.",
-        "A presence lingers briefly."
+        "The void whispers...",
+        "A ripple echoes.",
+        "The dark shifts.",
+        "A flicker stirs.",
+        "Echoes pulse softly."
       ];
-      const randomText = phrases[Math.floor(Math.random() * phrases.length)];
       const msg = {
-        text: randomText,
+        text: phrases[Math.floor(Math.random() * phrases.length)],
         timestamp: Date.now(),
         sender: "System"
       };
       db.ref("voidMessages").push(msg);
     }
 
-    setInterval(sendSystemMessage, 120000);
+    setInterval(sendAutoMessage, 10000);
   </script>
 </body>
 </html>

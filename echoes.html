@@ -168,16 +168,21 @@
       margin-top: 10px;
     }
 
-    #submitEcho {
-      margin-top: 10px;
+    .modal-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+    }
+
+    .modal-buttons button {
       background: #333;
-      border: none;
       color: white;
-      padding: 10px;
+      border: none;
+      padding: 10px 20px;
       cursor: pointer;
     }
 
-    #submitEcho:hover {
+    .modal-buttons button:hover {
       background: #555;
     }
   </style>
@@ -207,9 +212,12 @@
   <!-- Modal -->
   <div class="modal" id="echoModal">
     <div class="modal-content">
-      <div id="modalTitle"></div>
+      <div id="modalTitle" style="font-weight: bold; margin-bottom: 10px;"></div>
       <textarea id="echoBody" placeholder="Write your echo..."></textarea>
-      <button id="submitEcho">Post Echo</button>
+      <div class="modal-buttons">
+        <button id="cancelEcho">Cancel</button>
+        <button id="submitEcho">Post Echo</button>
+      </div>
     </div>
   </div>
 
@@ -239,6 +247,7 @@
     const echoBody = document.getElementById("echoBody");
     const modalTitle = document.getElementById("modalTitle");
     const submitEcho = document.getElementById("submitEcho");
+    const cancelEcho = document.getElementById("cancelEcho");
 
     let currentTitle = "";
 
@@ -249,6 +258,11 @@
       modalTitle.textContent = `Echo: "${title}"`;
       echoBody.value = "";
       echoModal.style.display = "flex";
+    };
+
+    cancelEcho.onclick = () => {
+      echoModal.style.display = "none";
+      echoBody.value = "";
     };
 
     submitEcho.onclick = () => {

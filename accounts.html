@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Accounts - VOID</title>
   <style>
     body {
-      margin: 0;
-      background-color: black;
+      background: black;
       color: white;
       font-family: monospace;
-      text-align: center;
+      margin: 0;
+      padding: 20px;
     }
     header {
       display: flex;
@@ -38,204 +39,182 @@
       text-decoration: none;
       margin: 5px 0;
     }
-    input, select, button {
-      margin: 8px;
-      padding: 10px;
+    input, button, textarea {
       background: #111;
       color: white;
       border: 1px solid #444;
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+      max-width: 300px;
     }
-    #profilePicPreview {
-      max-width: 100px;
-      border-radius: 10px;
+    #profile-section, #edit-section {
+      margin-top: 20px;
+    }
+    #profile-pic {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border: 1px solid #666;
+      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
+  <header>
+    <div id="navToggle">∞</div>
+    <h1>VOID</h1>
+    <nav id="mainNav">
+      <a href="index.html">Enter the Abyss</a>
+      <a href="echoes.html">Echoes</a>
+      <a href="accounts.html">Accounts</a>
+    </nav>
+  </header>
 
-<header>
-  <div id="navToggle">∞</div>
-  <h1>ACCOUNTS</h1>
-  <nav id="mainNav">
-    <a href="index.html">Home</a>
-    <a href="echoes.html">Echoes</a>
-    <a href="accounts.html">Accounts</a>
-  </nav>
-</header>
+  <div id="auth-section">
+    <h2>Register</h2>
+    <input type="text" id="reg-username" placeholder="Username (min 6 chars)" />
+    <input type="email" id="reg-email" placeholder="Email" />
+    <input type="password" id="reg-password" placeholder="Password (min 8 chars)" />
+    <button onclick="register()">Register</button>
 
-<div id="content">
-  <h2>Loading...</h2>
-</div>
+    <h2>Login</h2>
+    <input type="email" id="login-email" placeholder="Email" />
+    <input type="password" id="login-password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+  </div>
 
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+  <div id="profile-section" style="display:none;">
+    <h2>Your Profile</h2>
+    <img id="profile-pic" src="" alt="Profile Picture" />
+    <p><strong>Username:</strong> <span id="profile-username"></span></p>
+    <p><strong>Bio:</strong> <span id="profile-bio"></span></p>
+    <p><strong>Age:</strong> <span id="profile-age"></span></p>
+    <p><strong>Gender:</strong> <span id="profile-gender"></span></p>
+    <button onclick="showEdit()">Edit Profile</button>
+    <button onclick="logout()">Logout</button>
+  </div>
 
-<script>
-  // Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyDnLMO0VZ3ItFMF_7u3hOaErF_h1PQoQbs",
-    authDomain: "void-d9ec4.firebaseapp.com",
-    databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
-    projectId: "void-d9ec4",
-    storageBucket: "void-d9ec4.appspot.com",
-    messagingSenderId: "267268035851",
-    appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.database();
-  const storage = firebase.storage();
+  <div id="edit-section" style="display:none;">
+    <h2>Edit Profile</h2>
+    <input type="text" id="edit-bio" placeholder="Bio" />
+    <input type="number" id="edit-age" placeholder="Age" />
+    <input type="text" id="edit-gender" placeholder="Gender" />
+    <input type="file" id="edit-pfp" />
+    <button onclick="saveProfile()">Save Changes</button>
+    <button onclick="hideEdit()">Cancel</button>
+  </div>
 
-  // Header nav toggle
-  document.getElementById("navToggle").onclick = () => {
-    const nav = document.getElementById("mainNav");
-    nav.style.display = nav.style.display === "flex" ? "none" : "flex";
-  };
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDfQbZfDE7a9ZyZik4Mp0VDmG9E0BJpFOw",
+      authDomain: "void-d9ec4.firebaseapp.com",
+      databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
+      projectId: "void-d9ec4",
+      storageBucket: "void-d9ec4.appspot.com",
+      messagingSenderId: "267268035851",
+      appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    const storage = firebase.storage();
 
-  // Auth state
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      loadProfile(user);
-    } else {
-      showLoginRegister();
-    }
-  });
+    const navToggle = document.getElementById("navToggle");
+    navToggle.onclick = () => {
+      const nav = document.getElementById("mainNav");
+      nav.style.display = nav.style.display === "flex" ? "none" : "flex";
+    };
 
-  function showLoginRegister() {
-    document.getElementById("content").innerHTML = `
-      <h2>Register</h2>
-      <input type="email" id="regEmail" placeholder="Email"><br>
-      <input type="password" id="regPass" placeholder="Password (min 6)"><br>
-      <button onclick="register()">Register</button>
-
-      <h2>Login</h2>
-      <input type="email" id="logEmail" placeholder="Email"><br>
-      <input type="password" id="logPass" placeholder="Password"><br>
-      <button onclick="login()">Login</button>
-    `;
-  }
-
-  function register() {
-    const email = document.getElementById("regEmail").value;
-    const pass = document.getElementById("regPass").value;
-    if (pass.length < 6) return alert("Password must be at least 6 characters.");
-    auth.createUserWithEmailAndPassword(email, pass)
-      .then(cred => {
-        db.ref("users/" + cred.user.uid).set({ email });
-      }).catch(err => alert(err.message));
-  }
-
-  function login() {
-    const email = document.getElementById("logEmail").value;
-    const pass = document.getElementById("logPass").value;
-    auth.signInWithEmailAndPassword(email, pass)
-      .catch(err => alert(err.message));
-  }
-
-  function logout() {
-    auth.signOut();
-  }
-
-  function loadProfile(user) {
-    db.ref("users/" + user.uid).once("value").then(snapshot => {
-      const data = snapshot.val() || {};
-      renderProfile(user, data);
-
-      // Show other users
-      db.ref("users").once("value").then(usersSnap => {
-        const users = usersSnap.val();
-        let list = "<h3>Other Users</h3>";
-        for (const uid in users) {
-          if (uid !== user.uid) {
-            list += `<p><a href="#" onclick="viewUserProfile('${uid}')">${users[uid].email}</a></p>`;
-          }
-        }
-        document.getElementById("content").innerHTML += list;
-      });
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById("auth-section").style.display = "none";
+        document.getElementById("profile-section").style.display = "block";
+        loadProfile(user.uid);
+      }
     });
-  }
 
-  function renderProfile(user, data) {
-    document.getElementById("content").innerHTML = `
-      <h2>Your Profile</h2>
-      <img id="profilePicPreview" src="${data.profilePic || 'https://via.placeholder.com/100'}"><br>
-      <input type="file" id="picInput"><br>
-      <input type="text" id="bio" placeholder="Bio" value="${data.bio || ''}"><br>
-      <input type="number" id="age" placeholder="Age" value="${data.age || ''}"><br>
-      <select id="gender">
-        <option value="">Select Gender</option>
-        <option value="Male" ${data.gender === "Male" ? "selected" : ""}>Male</option>
-        <option value="Female" ${data.gender === "Female" ? "selected" : ""}>Female</option>
-        <option value="Other" ${data.gender === "Other" ? "selected" : ""}>Other</option>
-      </select><br>
-      <button onclick="saveProfile()">Save Profile</button>
-      <button onclick="logout()">Logout</button>
-    `;
-
-    document.getElementById("picInput").addEventListener("change", function(e) {
-      const file = e.target.files[0];
-      const ref = storage.ref("profilePics/" + user.uid);
-      ref.put(file).then(() => {
-        ref.getDownloadURL().then(url => {
-          db.ref("users/" + user.uid).update({ profilePic: url });
-          document.getElementById("profilePicPreview").src = url;
-        });
-      });
-    });
-  }
-
-  function saveProfile() {
-    const bio = document.getElementById("bio").value;
-    const age = document.getElementById("age").value;
-    const gender = document.getElementById("gender").value;
-    const uid = auth.currentUser.uid;
-    db.ref("users/" + uid).update({ bio, age, gender }).then(() => {
-      alert("Profile updated.");
-    });
-  }
-
-  function viewUserProfile(uid) {
-    db.ref("users/" + uid).once("value").then(snapshot => {
-      const data = snapshot.val();
-      if (!data) {
-        document.getElementById("content").innerHTML = "<p>User not found.</p>";
+    function register() {
+      const email = document.getElementById("reg-email").value;
+      const password = document.getElementById("reg-password").value;
+      const username = document.getElementById("reg-username").value;
+      if (password.length < 8 || username.length < 6) {
+        alert("Password must be 8+ chars, username 6+ chars.");
         return;
       }
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(cred => {
+          return db.ref("users/" + cred.user.uid).set({
+            username: username,
+            bio: "",
+            age: "",
+            gender: "",
+            profilePic: ""
+          });
+        })
+        .catch(e => alert(e.message));
+    }
 
-      const currentUid = auth.currentUser ? auth.currentUser.uid : null;
-      const isOwn = currentUid === uid;
+    function login() {
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .catch(e => alert(e.message));
+    }
 
-      document.getElementById("content").innerHTML = `
-        <h2>${isOwn ? "Your Profile" : "User Profile"}</h2>
-        <img src="${data.profilePic || 'https://via.placeholder.com/100'}"><br>
-        <p><strong>Email:</strong> ${data.email || 'N/A'}</p>
-        <p><strong>Bio:</strong> ${data.bio || ''}</p>
-        <p><strong>Age:</strong> ${data.age || ''}</p>
-        <p><strong>Gender:</strong> ${data.gender || ''}</p>
-        ${!isOwn ? `
-          <button onclick="followUser('${uid}')">Follow</button>
-          <button onclick="dmUser('${uid}')">Message</button>
-        ` : `
-          <button onclick="logout()">Logout</button>
-          <button onclick="auth.onAuthStateChanged(u => renderProfile(u, data))">Edit Profile</button>
-        `}
-      `;
-    });
-  }
+    function logout() {
+      auth.signOut().then(() => location.reload());
+    }
 
-  function followUser(targetUid) {
-    const currentUid = auth.currentUser.uid;
-    db.ref(`follows/${currentUid}/${targetUid}`).set(true).then(() => {
-      alert("Followed!");
-    });
-  }
+    function loadProfile(uid) {
+      db.ref("users/" + uid).once("value").then(snapshot => {
+        const data = snapshot.val();
+        document.getElementById("profile-username").innerText = data.username;
+        document.getElementById("profile-bio").innerText = data.bio;
+        document.getElementById("profile-age").innerText = data.age;
+        document.getElementById("profile-gender").innerText = data.gender;
+        document.getElementById("profile-pic").src = data.profilePic || "https://via.placeholder.com/100";
+        document.getElementById("edit-bio").value = data.bio;
+        document.getElementById("edit-age").value = data.age;
+        document.getElementById("edit-gender").value = data.gender;
+      });
+    }
 
-  function dmUser(targetUid) {
-    alert("DM system coming soon...");
-  }
-</script>
+    function showEdit() {
+      document.getElementById("edit-section").style.display = "block";
+    }
 
+    function hideEdit() {
+      document.getElementById("edit-section").style.display = "none";
+    }
+
+    function saveProfile() {
+      const user = auth.currentUser;
+      if (!user) return;
+      const bio = document.getElementById("edit-bio").value;
+      const age = document.getElementById("edit-age").value;
+      const gender = document.getElementById("edit-gender").value;
+      const file = document.getElementById("edit-pfp").files[0];
+
+      const updates = { bio, age, gender };
+
+      if (file) {
+        const storageRef = storage.ref("pfp/" + user.uid);
+        storageRef.put(file).then(() => {
+          storageRef.getDownloadURL().then(url => {
+            updates.profilePic = url;
+            db.ref("users/" + user.uid).update(updates).then(() => location.reload());
+          });
+        });
+      } else {
+        db.ref("users/" + user.uid).update(updates).then(() => location.reload());
+      }
+    }
+  </script>
 </body>
 </html>

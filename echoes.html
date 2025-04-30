@@ -318,7 +318,121 @@
 
   db.ref("echoes").on("value", renderThreads);
 </script>
+<script>
+  function toggleNav() {
+    const menu = document.getElementById("navMenu");
+    menu.style.display = menu.style.display === "block" ? "none" : "block";
+  }
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyClW4zHDde1rQm6RkHQcD2rM0sklBBgdrM",
+    authDomain: "void-d9ec4.firebaseapp.com",
+    databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
+    projectId: "void-d9ec4",
+    storageBucket: "void-d9ec4.appspot.com",
+    messagingSenderId: "267268035851",
+    appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const threadsDiv = document.getElementById("threads");
+  const threadInput = document.getElementById("threadInput");
+  const postButton = document.getElementById("postThread");
+
+  let titleInProgress = "";
+  let isAwaitingContent = false;
+
+  postButton.onclick = () => {
+    const text = threadInput.value.trim();
+    if (!isAwaitingContent) {
+      if (text !== "") {
+        titleInProgress = text;
+        threadInput.value = "";
+        threadInput.placeholder = "Now write the actual echo topic...";
+        isAwaitingContent = true;
+      }
+    } else {
+      if (text !== "") {
+        const timestamp = Date.now();
+        const threadRef = db.ref("echoes").push();
+        threadRef.set({
+          title: titleInProgress,
+          content: text,
+          timestamp,
+          replies: []
+        });
+        threadInput.value = "";
+        threadInput.placeholder = "What's your thought...";
+        titleInProgress = "";
+        isAwaitingContent = false;
+      }
+    }
+  };
+
+  function renderThreads(snapshot) {
+    threadsDiv.innerHTML = "";
+    const now = Date.now();
+
+    snapshot.forEach(child => {
+      const key = child.key;
+      const data = child.val();
+      const expiresAt = data.timestamp + 60 * 60 * 1000;
+      const secondsLeft = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+
+      if (secondsLeft <= 0) {
+        db.ref("echoes").child(key).remove();
+        return;
+      }
+
+      const threadEl = document.createElement("div");
+      threadEl.className = "thread";
+
+      threadEl.innerHTML = `
+        <div style="font-weight:bold; font-size:18px;">${data.title}</div>
+        <div style="margin-top:6px;">${data.content}</div>
+        <div class="countdown" id="cd-${key}">${secondsLeft}s left</div>
+        <div class="replies" id="replies-${key}">
+          ${(data.replies || []).map(reply => `<div class="reply">${reply}</div>`).join("")}
+        </div>
+        <input class="replyInput" id="input-${key}" placeholder="Reply..."/>
+        <button class="replyButton" onclick="replyTo('${key}')">Reply</button>
+      `;
+
+      threadsDiv.appendChild(threadEl);
+
+      const interval = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+        const cdEl = document.getElementById("cd-" + key);
+        if (cdEl) cdEl.textContent = `${remaining}s left`;
+        if (remaining <= 0) {
+          clearInterval(interval);
+          db.ref("echoes").child(key).remove();
+        }
+      }, 1000);
+    });
+  }
+
+  function replyTo(key) {
+    const input = document.getElementById("input-" + key);
+    const reply = input.value.trim();
+    if (reply) {
+      const repliesRef = db.ref("echoes").child(key).child("replies");
+      repliesRef.once("value", snap => {
+        const replies = snap.val() || [];
+        replies.push(reply);
+        repliesRef.set(replies);
+      });
+      input.value = "";
+    }
+  }
+
+  db.ref("echoes").on("value", renderThreads);
+</script>
+
+
+
+  
 </body>
 </html>
 

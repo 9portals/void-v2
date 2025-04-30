@@ -1,157 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>VOID — Echoes</title>
+  <title>Echoes - The Void</title>
   <style>
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
       background-color: black;
       color: white;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
     }
-
     header {
-      padding: 20px;
-      text-align: center;
       background-color: #111;
-      font-size: 28px;
-      font-weight: bold;
-      border-bottom: 1px solid #444;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    #navToggle {
-      cursor: pointer;
-      font-size: 28px;
-      margin-left: 12px;
-    }
-
-    #navMenu {
-      display: none;
-      margin-top: 10px;
-      font-family: monospace;
-      color: white;
-      text-align: center;
-    }
-
-    #navMenu div {
-      margin: 4px 0;
-      cursor: pointer;
-    }
-
-    #navMenu div:hover {
-      text-decoration: underline;
-    }
-
-    #subtitle {
-      text-align: center;
-      font-size: 20px;
-      margin-top: 10px;
-      color: #aaa;
-    }
-
-    #newThread {
-      display: flex;
-      justify-content: center;
-      padding: 10px;
-      background-color: #111;
-      border-bottom: 1px solid #333;
-    }
-
-    #threadInput {
-      width: 60%;
-      padding: 10px;
-      border: 1px solid #333;
-      border-radius: 4px;
-      background-color: #111;
-      color: white;
-      margin-right: 10px;
-    }
-
-    #postThread {
       padding: 10px 20px;
-      border: none;
-      background-color: #333;
+      text-align: center;
+    }
+    nav a {
       color: white;
-      cursor: pointer;
-      border-radius: 4px;
+      margin: 0 10px;
+      text-decoration: none;
     }
-
-    #postThread:hover {
-      background-color: #555;
-    }
-
-    #threads {
-      flex: 1;
-      overflow-y: auto;
+    #echoContainer {
       padding: 20px;
     }
-
-    .thread {
-      background-color: #222;
+    .echo {
+      border: 1px solid #333;
+      margin-bottom: 10px;
       padding: 10px;
-      margin-bottom: 12px;
-      border-radius: 6px;
+      background-color: #111;
       cursor: pointer;
     }
-
-    .thread.expanded {
-      cursor: default;
-    }
-
-    .thread-content, .replyInputArea {
+    .echo-content {
       display: none;
       margin-top: 10px;
     }
-
-    .thread.expanded .thread-content,
-    .thread.expanded .replyInputArea {
-      display: block;
+    .reply {
+      margin-left: 20px;
+      margin-top: 10px;
+      border-top: 1px dashed #555;
+      padding-top: 5px;
     }
-
-    .countdown, .thread-username {
-      font-size: 12px;
-      color: #aaa;
+    .timer {
+      font-size: 0.8em;
+      color: gray;
       margin-left: 10px;
     }
-
-    .reply {
-      padding: 6px 10px;
-      background-color: #333;
-      margin-top: 6px;
-      border-radius: 4px;
+    .author {
+      font-size: 0.9em;
+      color: lightgray;
+      margin-left: 10px;
     }
-
-    /* Modal styling */
-    .modal {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
-      background-color: rgba(0,0,0,0.8);
-      display: none;
-      justify-content: center;
-      align-items: center;
+    textarea {
+      width: 100%;
+      height: 180px;
+      padding: 12px;
+      background: #000;
+      color: white;
+      border: 1px solid #333;
+      margin-top: 10px;
+      resize: vertical;
     }
-
-    .modal-content {
-      background-color: #111;
-      padding: 20px;
-      border-radius: 8px;
-      width: 80%;
-      max-width: 600px;
-      box-shadow: 0 0 20px #000;
-    }
-
-    textarea, input {
+    input {
       width: 100%;
       padding: 10px;
       background: #000;
@@ -159,239 +68,222 @@
       border: 1px solid #333;
       margin-top: 10px;
     }
-
-    button {
-      background: #333;
+    .modal {
+      display: none;
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -20%);
+      background: #111;
+      border: 1px solid #444;
+      padding: 20px;
+      z-index: 1000;
+    }
+    .modal.show {
+      display: block;
+    }
+    .btn {
+      background: #222;
+      border: 1px solid #555;
+      padding: 10px 15px;
       color: white;
-      border: none;
-      padding: 10px;
-      margin-top: 10px;
       cursor: pointer;
+      margin-top: 10px;
     }
-
-    button:hover {
-      background: #555;
-    }
-
-    .reply-meta {
-      font-size: 12px;
+    .fold-toggle {
+      font-size: 0.8em;
       color: #888;
+      float: right;
     }
   </style>
 </head>
 <body>
   <header>
-    ECHOES <span id="navToggle">≡</span>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="view-profiles.html">View Profiles</a>
+      <a href="global-chat.html">Global Chat</a>
+      <a href="echoes.html">Echoes</a>
+      <a href="edit-profile.html">Edit Profile</a>
+      <a href="login.html">Login</a>
+    </nav>
   </header>
-  <div id="navMenu">
-    <div onclick="location.href='index.html'">Home</div>
-    <div onclick="location.href='view-profiles.html'">View Profiles</div>
-    <div onclick="location.href='chat.html'">Global Chat</div>
-    <div onclick="location.href='edit-profile.html'">Edit Profile</div>
-    <div onclick="location.href='login.html'">Login</div>
-    <div onclick="location.href='signup.html'">Sign Up</div>
+
+  <div id="echoContainer"></div>
+
+  <div class="modal" id="titleModal">
+    <h3>Enter Echo Title</h3>
+    <input id="echoTitleInput" placeholder="Thread Title">
+    <input id="echoAuthorInput" placeholder="Optional Username">
+    <button class="btn" onclick="nextEchoStep()">Next</button>
   </div>
 
-  <div id="subtitle">Start a discussion that echoes through the void.</div>
-
-  <div id="newThread">
-    <input id="threadInput" type="text" placeholder="Thread title..." />
-    <button id="postThread">Echo</button>
+  <div class="modal" id="contentModal">
+    <h3>Enter Echo Content</h3>
+    <textarea id="echoContentInput" placeholder="What's your message?"></textarea>
+    <button class="btn" onclick="postEcho()">Post Echo</button>
   </div>
 
-  <div id="threads"></div>
-
-  <!-- Echo Modal -->
-  <div class="modal" id="echoModal">
-    <div class="modal-content">
-      <div id="modalTitle"></div>
-      <input id="echoUsername" placeholder="Enter username (or leave blank for Anonymous)" />
-      <textarea id="echoBody" placeholder="Write your echo..."></textarea>
-      <button id="submitEcho">Post Echo</button>
-      <button onclick="echoModal.style.display='none'">Cancel</button>
-    </div>
-  </div>
-
-  <!-- Reply Modal -->
   <div class="modal" id="replyModal">
-    <div class="modal-content">
-      <div id="replyModalTitle">Reply</div>
-      <input id="replyUsername" placeholder="Enter username (or leave blank for Anonymous)" />
-      <textarea id="replyBody" placeholder="Write your reply..."></textarea>
-      <button id="submitReply">Post Reply</button>
-      <button onclick="replyModal.style.display='none'">Cancel</button>
-    </div>
+    <h3>Reply to Echo</h3>
+    <input id="replyAuthorInput" placeholder="Optional Username">
+    <textarea id="replyContentInput" placeholder="Write your reply..."></textarea>
+    <button class="btn" onclick="submitReply()">Post Reply</button>
   </div>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      onValue,
+      push,
+      set,
+      update
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
     const firebaseConfig = {
-      apiKey: "AIzaSyBP8eY_0FYMqZnbGlXRcQ7fFuyLMIKe5hY",
+      apiKey: "AIzaSyCnJW3-f6qM6FYcdSUDAo_NbFpxcWl38Kw",
       authDomain: "void-d9ec4.firebaseapp.com",
-      databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
       projectId: "void-d9ec4",
       storageBucket: "void-d9ec4.appspot.com",
       messagingSenderId: "267268035851",
-      appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
+      appId: "1:267268035851:web:d535fe4175c06f170f3e0e",
+      databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com/"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    const threadInput = document.getElementById("threadInput");
-    const postThread = document.getElementById("postThread");
-    const threadsContainer = document.getElementById("threads");
+    let currentEchoKey = null;
 
-    const echoModal = document.getElementById("echoModal");
-    const echoBody = document.getElementById("echoBody");
-    const echoUsername = document.getElementById("echoUsername");
-    const modalTitle = document.getElementById("modalTitle");
-    const submitEcho = document.getElementById("submitEcho");
+    const echoContainer = document.getElementById('echoContainer');
+    const titleModal = document.getElementById('titleModal');
+    const contentModal = document.getElementById('contentModal');
+    const replyModal = document.getElementById('replyModal');
 
-    const replyModal = document.getElementById("replyModal");
-    const replyBody = document.getElementById("replyBody");
-    const replyUsername = document.getElementById("replyUsername");
-    const submitReply = document.getElementById("submitReply");
-    let replyToThreadId = null;
+    const echoTitleInput = document.getElementById('echoTitleInput');
+    const echoAuthorInput = document.getElementById('echoAuthorInput');
+    const echoContentInput = document.getElementById('echoContentInput');
+    const replyContentInput = document.getElementById('replyContentInput');
+    const replyAuthorInput = document.getElementById('replyAuthorInput');
 
-    postThread.onclick = () => {
-      const title = threadInput.value.trim();
-      if (!title) return;
-      modalTitle.textContent = `Echo: "${title}"`;
-      echoBody.value = "";
-      echoUsername.value = "";
-      echoModal.style.display = "flex";
-    };
+    function openEchoModal() {
+      titleModal.classList.add('show');
+    }
 
-    submitEcho.onclick = () => {
-      const content = echoBody.value.trim();
-      const username = echoUsername.value.trim() || "Anonymous";
-      const title = threadInput.value.trim();
-      if (!content || !title) return;
+    function nextEchoStep() {
+      titleModal.classList.remove('show');
+      contentModal.classList.add('show');
+    }
 
+    function postEcho() {
+      const title = echoTitleInput.value;
+      const content = echoContentInput.value;
+      const author = echoAuthorInput.value.trim() || "Anonymous";
       const now = Date.now();
-      const thread = {
+      const expiration = now + 10 * 60 * 1000;
+
+      const newEchoRef = push(ref(db, 'echoes'));
+      set(newEchoRef, {
         title,
         content,
-        timestamp: now,
-        username,
-        replies: {}
-      };
-
-      db.ref("echoes").push(thread);
-      echoModal.style.display = "none";
-      threadInput.value = "";
-    };
-
-    function renderThreads(snapshot) {
-      threadsContainer.innerHTML = "";
-      const threads = snapshot.val();
-      if (!threads) return;
-
-      const entries = Object.entries(threads).sort((a, b) => b[1].timestamp - a[1].timestamp);
-
-      entries.forEach(([id, thread]) => {
-        const timeLeft = 10 * 60 * 1000 - (Date.now() - thread.timestamp);
-        if (timeLeft <= 0) {
-          db.ref("echoes/" + id).remove();
-          return;
-        }
-
-        const threadDiv = document.createElement("div");
-        threadDiv.className = "thread";
-        threadDiv.onclick = () => {
-          threadDiv.classList.toggle("expanded");
-        };
-
-        const header = document.createElement("div");
-        header.innerHTML = `<strong>${thread.title}</strong>
-          <span class="countdown" id="timer-${id}"></span>
-          <span class="thread-username">${thread.username || "Anonymous"}</span>`;
-        threadDiv.appendChild(header);
-
-        const contentDiv = document.createElement("div");
-        contentDiv.className = "thread-content";
-        contentDiv.textContent = thread.content;
-        threadDiv.appendChild(contentDiv);
-
-        const repliesDiv = document.createElement("div");
-        repliesDiv.id = `replies-${id}`;
-        repliesDiv.className = "thread-content";
-        if (thread.replies) {
-          Object.values(thread.replies).forEach(r => {
-            const reply = document.createElement("div");
-            reply.className = "reply";
-            reply.innerHTML = `<div>${r.text}</div><div class="reply-meta">${r.username || "Anonymous"}</div>`;
-            repliesDiv.appendChild(reply);
-          });
-        }
-        threadDiv.appendChild(repliesDiv);
-
-        const replyButton = document.createElement("button");
-        replyButton.textContent = "Reply";
-        replyButton.onclick = (e) => {
-          e.stopPropagation();
-          replyModal.style.display = "flex";
-          replyToThreadId = id;
-        };
-
-        const replyArea = document.createElement("div");
-        replyArea.className = "replyInputArea thread-content";
-        replyArea.appendChild(replyButton);
-        threadDiv.appendChild(replyArea);
-
-        threadsContainer.appendChild(threadDiv);
-        startCountdown(`timer-${id}`, thread.timestamp, id);
+        author,
+        createdAt: now,
+        expiresAt: expiration,
+        replies: []
       });
+
+      echoTitleInput.value = '';
+      echoAuthorInput.value = '';
+      echoContentInput.value = '';
+      contentModal.classList.remove('show');
     }
 
-    submitReply.onclick = () => {
-      const text = replyBody.value.trim();
-      const username = replyUsername.value.trim() || "Anonymous";
-      if (!text || !replyToThreadId) return;
+    function renderEcho(key, echo) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'echo';
+      wrapper.setAttribute('data-key', key);
 
-      const reply = { text, username };
-      db.ref(`echoes/${replyToThreadId}/replies`).push(reply);
+      const foldedContent = document.createElement('div');
+      foldedContent.innerHTML = `<strong>${echo.title}</strong> <span class="author">${echo.author}</span> <span class="timer" id="timer-${key}"></span>`;
+      wrapper.appendChild(foldedContent);
 
-      // bump echo timer by 5 min
-      db.ref(`echoes/${replyToThreadId}/timestamp`).once("value", snap => {
-        const current = snap.val();
-        db.ref(`echoes/${replyToThreadId}/timestamp`).set(current + 5 * 60 * 1000);
-      });
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'echo-content';
+      contentDiv.innerHTML = `<p>${echo.content}</p>`;
 
-      replyModal.style.display = "none";
-      replyBody.value = "";
-      replyUsername.value = "";
-    };
+      const replyBox = document.createElement('div');
+      replyBox.innerHTML = `<button class="btn" onclick="openReplyModal('${key}')">Reply</button>`;
+      contentDiv.appendChild(replyBox);
 
-    function startCountdown(elementId, startTime, threadId) {
-      const el = document.getElementById(elementId);
-      function update() {
-        const now = Date.now();
-        db.ref(`echoes/${threadId}/timestamp`).once("value", snap => {
-          const ts = snap.val();
-          const remaining = 10 * 60 * 1000 - (now - ts);
-          if (remaining <= 0) {
-            db.ref("echoes/" + threadId).remove();
-            return;
-          }
-          const minutes = Math.floor(remaining / 60000);
-          const seconds = Math.floor((remaining % 60000) / 1000);
-          el.textContent = `— ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-          requestAnimationFrame(update);
+      if (echo.replies) {
+        Object.entries(echo.replies).forEach(([k, reply]) => {
+          const r = document.createElement('div');
+          r.className = 'reply';
+          r.innerHTML = `<strong>${reply.author}</strong>: ${reply.text}`;
+          contentDiv.appendChild(r);
         });
       }
-      update();
+
+      wrapper.appendChild(contentDiv);
+      wrapper.addEventListener('click', () => {
+        contentDiv.style.display = contentDiv.style.display === 'none' ? 'block' : 'none';
+      });
+
+      echoContainer.appendChild(wrapper);
+      updateTimer(key, echo.expiresAt);
     }
 
-    db.ref("echoes").on("value", renderThreads);
+    function updateTimer(key, expiresAt) {
+      const timer = document.getElementById(`timer-${key}`);
+      function update() {
+        const remaining = Math.max(0, expiresAt - Date.now());
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        timer.textContent = `(${mins}:${secs.toString().padStart(2, '0')})`;
+        if (remaining <= 0) {
+          document.querySelector(`[data-key="${key}"]`)?.remove();
+        }
+      }
+      update();
+      setInterval(update, 1000);
+    }
 
-    document.getElementById("navToggle").onclick = () => {
-      const nav = document.getElementById("navMenu");
-      nav.style.display = nav.style.display === "block" ? "none" : "block";
+    window.openReplyModal = (key) => {
+      currentEchoKey = key;
+      replyModal.classList.add('show');
     };
+
+    window.submitReply = () => {
+      const text = replyContentInput.value.trim();
+      const author = replyAuthorInput.value.trim() || "Anonymous";
+      if (!text) return;
+
+      const reply = { text, author };
+      const echoRef = ref(db, `echoes/${currentEchoKey}/replies`);
+      push(echoRef, reply);
+
+      const newExpiration = Date.now() + 5 * 60 * 1000;
+      update(ref(db, `echoes/${currentEchoKey}`), { expiresAt: newExpiration });
+
+      replyContentInput.value = '';
+      replyAuthorInput.value = '';
+      replyModal.classList.remove('show');
+    };
+
+    onValue(ref(db, 'echoes'), snapshot => {
+      echoContainer.innerHTML = '';
+      const echoes = snapshot.val();
+      if (!echoes) return;
+
+      Object.entries(echoes).forEach(([key, echo]) => {
+        renderEcho(key, echo);
+      });
+    });
+
+    // Open echo modal by default for testing
+    openEchoModal();
   </script>
 </body>
 </html>

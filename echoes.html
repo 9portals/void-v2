@@ -183,11 +183,15 @@
     const threadsContainer = document.getElementById("threads");
 
     postThread.onclick = () => {
-      const content = threadInput.value.trim();
+      const title = threadInput.value.trim();
+      if (!title) return;
+
+      const content = prompt("Write your echo content:");
       if (!content) return;
 
       const now = Date.now();
       const thread = {
+        title,
         content,
         timestamp: now,
         replies: {}
@@ -215,6 +219,7 @@
         const threadDiv = document.createElement("div");
         threadDiv.className = "thread";
         threadDiv.innerHTML = `
+          <div><strong>${thread.title}</strong></div>
           <div>${thread.content}</div>
           <div class="countdown" id="timer-${id}"></div>
           <div id="replies-${id}"></div>
@@ -272,5 +277,3 @@
   </script>
 </body>
 </html>
-
-  

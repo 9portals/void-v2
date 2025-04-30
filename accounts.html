@@ -14,7 +14,7 @@
       max-width: 400px;
       margin: 40px auto;
     }
-    input, select, button {
+    input, select, button, textarea {
       width: 100%;
       padding: 10px;
       margin: 8px 0;
@@ -130,9 +130,14 @@
               verified: false
             });
             sendVerification();
+          }).catch(err => {
+            alert(err.message);
           });
       } else {
-        auth.signInWithEmailAndPassword(email.value, password.value);
+        auth.signInWithEmailAndPassword(email.value, password.value)
+          .catch(err => {
+            alert(err.message);
+          });
       }
     });
 
@@ -141,6 +146,8 @@
       if (user) {
         user.sendEmailVerification().then(() => {
           alert("Verification email sent.");
+        }).catch(err => {
+          alert(err.message);
         });
       }
     }
@@ -210,6 +217,8 @@
       } else {
         db.ref("users/" + uid).update(profileData).then(() => {
           alert("Profile saved!");
+        }).catch(err => {
+          alert(err.message);
         });
       }
     }
@@ -228,6 +237,8 @@
             previewPic.classList.remove("hidden");
           }
         }
+      }).catch(err => {
+        console.error(err);
       });
     }
   </script>

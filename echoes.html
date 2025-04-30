@@ -105,38 +105,22 @@
 
     .thread-header {
       font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .thread-info {
+      font-size: 12px;
+      color: #bbb;
+      margin-left: 10px;
+      display: flex;
+      gap: 10px;
     }
 
     .thread-content {
       display: none;
       margin-top: 10px;
-    }
-
-    .user-info {
-      display: flex;
-      align-items: center;
-      margin-top: 6px;
-    }
-
-    .user-pic {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      margin-right: 6px;
-      background-color: gray;
-      display: none;
-    }
-
-    .user-name {
-      font-size: 12px;
-      color: #bbb;
-      display: none;
-    }
-
-    .countdown {
-      font-size: 12px;
-      color: #aaa;
-      margin-top: 6px;
     }
 
     .replyInput {
@@ -198,6 +182,15 @@
       margin-top: 10px;
     }
 
+    #usernameInput {
+      width: 100%;
+      padding: 10px;
+      background-color: #000;
+      border: 1px solid #333;
+      color: white;
+      margin-top: 10px;
+    }
+
     #submitEcho {
       margin-top: 10px;
       background: #333;
@@ -250,6 +243,7 @@
     <div class="modal-content">
       <div id="modalTitle"></div>
       <textarea id="echoBody" placeholder="Write your echo..."></textarea>
+      <input id="usernameInput" type="text" placeholder="Enter your username (optional)">
       <div style="display:flex; justify-content:flex-end;">
         <button id="cancelEcho">Cancel</button>
         <button id="submitEcho">Post Echo</button>
@@ -282,6 +276,7 @@
     const modalTitle = document.getElementById("modalTitle");
     const submitEcho = document.getElementById("submitEcho");
     const cancelEcho = document.getElementById("cancelEcho");
+    const usernameInput = document.getElementById("usernameInput");
 
     let currentTitle = "";
 
@@ -291,6 +286,7 @@
       currentTitle = title;
       modalTitle.textContent = `Echo: "${title}"`;
       echoBody.value = "";
+      usernameInput.value = "";
       echoModal.style.display = "flex";
     };
 
@@ -300,6 +296,7 @@
 
     submitEcho.onclick = () => {
       const content = echoBody.value.trim();
+      const username = usernameInput.value.trim() || "Anonymous";
       if (!content) return;
       const now = Date.now();
       const thread = {
@@ -307,8 +304,7 @@
         content,
         timestamp: now,
         replies: {},
-        username: "Anonymous",
-        profilePic: ""
+        username
       };
       db.ref("echoes").push(thread);
       echoModal.style.display = "none";
@@ -334,18 +330,22 @@
 
         const header = document.createElement("div");
         header.className = "thread-header";
-        header.textContent = thread.title;
+
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = thread.title;
+
+        const infoSpan = document.createElement("span");
+        infoSpan.className = "thread-info";
+        infoSpan.innerHTML = `<span>${thread.username}</span> <span id="timer-${id}"></span>`;
+
+        header.appendChild(titleSpan);
+        header.appendChild(infoSpan);
         threadDiv.appendChild(header);
 
         const contentDiv = document.createElement("div");
         contentDiv.className = "thread-content";
         contentDiv.innerHTML = `
           <div>${thread.content}</div>
-          <div class="user-info">
-            <div class="user-pic"></div>
-            <div class="user-name">${thread.username}</div>
-          </div>
-          <div class="countdown" id="timer-${id}"></div>
           <div id="replies-${id}"></div>
           <input class="replyInput" id="replyInput-${id}" placeholder="Reply..." />
           <button class="replyButton" onclick="postReply('${id}')">Post</button>
@@ -391,7 +391,7 @@
         }
         const minutes = Math.floor(remaining / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
-        el.textContent = `Disappears in ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        el.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
         requestAnimationFrame(update);
       }
       update();

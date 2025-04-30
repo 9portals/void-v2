@@ -139,3 +139,98 @@
     <button id="postThread">Echo</button>
   </div>
   <div id="threads"></div>
+  <script>
+  // Firebase configuration (your real app ID from locked mode)
+  const firebaseConfig = {
+    apiKey: "AIzaSyDbvbfWvWkIOQdGOmMVn13_Aml5O9EDEiw",
+    authDomain: "void-d9ec4.firebaseapp.com",
+    databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
+    projectId: "void-d9ec4",
+    storageBucket: "void-d9ec4.appspot.com",
+    messagingSenderId: "267268035851",
+    appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // Anonymous auth (so visitors can write/read)
+  firebase.auth().signInAnonymously().catch(console.error);
+
+  // Toggle nav
+  function toggleNav() {
+    const menu = document.getElementById('navMenu');
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  }
+
+  // Post a new echo/thread
+  document.getElementById('postThread').addEventListener('click', () => {
+    const title = document.getElementById('threadTitle').value.trim();
+    const content = document.getElementById('threadContent').value.trim();
+    if (title && content) {
+      const newEcho = {
+        title,
+        content,
+        timestamp: Date.now()
+      };
+      const key = db.ref("echoes").push().key;
+      db.ref("echoes/" + key).set(newEcho);
+      document.getElementById('threadTitle').value = "";
+      document.getElementById('threadContent').value = "";
+    }
+  });
+
+  // Render all echoes and their replies
+  db.ref("echoes").on("value", (snapshot) => {
+    const threadsContainer = document.getElementById('threads');
+    threadsContainer.innerHTML = "";
+    const echoes = snapshot.val();
+    if (!echoes) return;
+    Object.entries(echoes).reverse().forEach(([key, echo]) => {
+      const div = document.createElement('div');
+      div.className = 'thread';
+      div.innerHTML = `
+        <strong>${echo.title}</strong><br>${echo.content}
+        <div id="replies-${key}"></div>
+        <input class="replyInput" placeholder="Write a reply..." id="replyInput-${key}" />
+        <button class="replyButton" onclick="postReply('${key}')">Reply</button>
+      `;
+      threadsContainer.appendChild(div);
+      loadReplies(key);
+    });
+  });
+
+  // Post a reply to a specific thread
+  function postReply(echoKey) {
+    const input = document.getElementById('replyInput-' + echoKey);
+    const replyText = input.value.trim();
+    if (replyText) {
+      const reply = {
+        text: replyText,
+        timestamp: Date.now()
+      };
+      db.ref("echoes/" + echoKey + "/replies").push(reply);
+      input.value = "";
+    }
+  }
+
+  // Load replies under each thread
+  function loadReplies(echoKey) {
+    db.ref("echoes/" + echoKey + "/replies").on("value", (snapshot) => {
+      const replyDiv = document.getElementById('replies-' + echoKey);
+      replyDiv.innerHTML = "";
+      const replies = snapshot.val();
+      if (!replies) return;
+      Object.values(replies).forEach(reply => {
+        const p = document.createElement('div');
+        p.className = "reply";
+        p.textContent = reply.text;
+        replyDiv.appendChild(p);
+      });
+    });
+  }
+</script>
+</body>
+</html>
+

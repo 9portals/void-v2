@@ -1,253 +1,269 @@
+<!-- FULL accounts.html with fixes -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <title>VOID — Accounts</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>VOID — Account</title>
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
       background-color: black;
       color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
     }
 
     header {
+      font-size: 32px;
       padding: 20px;
-      text-align: center;
       background-color: #111;
-      font-size: 28px;
-      font-weight: bold;
-      border-bottom: 1px solid #444;
+      border-bottom: 1px solid #333;
     }
 
-    .toggle-container {
-      text-align: center;
-      margin: 20px 0;
-    }
-
-    .hidden { display: none; }
-
-    .form-group {
-      margin: 10px auto;
-      width: 80%;
+    #formContainer, #profileView, #editProfileSection {
       max-width: 400px;
+      margin: auto;
+      display: none;
     }
 
-    input, textarea, select {
-      width: 100%;
+    input, textarea, button {
+      width: 90%;
       padding: 10px;
-      margin: 5px 0;
-      background-color: #222;
+      margin: 8px 0;
+      background-color: #111;
+      border: 1px solid #333;
       color: white;
-      border: 1px solid #444;
-      border-radius: 4px;
     }
 
     button {
-      padding: 10px 20px;
-      margin-top: 10px;
-      background-color: #333;
-      color: white;
-      border: none;
       cursor: pointer;
+      background-color: #333;
     }
 
     button:hover {
       background-color: #555;
     }
 
-    #profilePic {
-      width: 120px;
-      height: 120px;
+    #toggleContainer {
+      margin-top: 20px;
+    }
+
+    img.profile-pic {
+      width: 200px;
+      height: 200px;
       object-fit: cover;
-      border-radius: 50%;
       cursor: pointer;
     }
 
-    #fullPic {
-      max-width: 90vw;
-      max-height: 90vh;
-      display: none;
-      margin: 20px auto;
-    }
-
-    #statusTag {
-      font-size: 12px;
-      margin-top: 5px;
-      color: #aaa;
+    #verifyMessage {
+      color: orange;
+      margin-bottom: 10px;
     }
   </style>
-</head>
-<body>
-  <header>VOID — Account</header>
-
-  <div class="toggle-container">
-    <button onclick="toggleForm(true)">Login</button>
-    <button onclick="toggleForm(false)">Sign Up</button>
-  </div>
-
-  <div id="loginForm" class="form-group">
-    <input type="email" id="loginEmail" placeholder="Email">
-    <input type="password" id="loginPassword" placeholder="Password">
-    <button onclick="login()">Login</button>
-  </div>
-
-  <div id="signupForm" class="form-group hidden">
-    <input type="email" id="signupEmail" placeholder="Email">
-    <input type="password" id="signupPassword" placeholder="Password">
-    <input type="text" id="signupUsername" placeholder="Username">
-    <button onclick="signup()">Sign Up</button>
-  </div>
-
-  <div id="profileView" class="form-group hidden">
-    <img id="profilePic" src="https://via.placeholder.com/120" onclick="toggleFullPic()" />
-    <img id="fullPic" src="" />
-    <div id="statusTag">Status: Unverified</div>
-    <p><strong>Name:</strong> <span id="displayName">—</span></p>
-    <p><strong>Age:</strong> <span id="displayAge">—</span></p>
-    <p><strong>Gender:</strong> <span id="displayGender">—</span></p>
-    <p><strong>Bio:</strong> <span id="displayBio">—</span></p>
-    <button onclick="showEditProfile()">Edit Profile</button>
-  </div>
-
-  <div id="editProfile" class="form-group hidden">
-    <input type="text" id="name" placeholder="Name">
-    <input type="number" id="age" placeholder="Age">
-    <select id="gender">
-      <option value="">Select Gender</option>
-      <option>Male</option>
-      <option>Female</option>
-      <option>Other</option>
-    </select>
-    <textarea id="bio" placeholder="Bio"></textarea>
-    <input type="file" id="picUpload" accept="image/*" />
-    <button onclick="saveProfile()">Save Profile</button>
-    <button onclick="cancelEdit()">Cancel</button>
-  </div>
-
-  <!-- Firebase SDKs -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+  <header>VOID — ACCOUNTS</header>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
-    authDomain: "void-d9ec4.firebaseapp.com",
-    databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
-    projectId: "void-d9ec4",
-    storageBucket: "void-d9ec4.appspot.com",
-    messagingSenderId: "267268035851",
-    appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.database();
-  const storage = firebase.storage();
+  <div id="verifyMessage"></div>
 
-  function toggleForm(isLogin) {
-    document.getElementById("loginForm").classList.toggle("hidden", !isLogin);
-    document.getElementById("signupForm").classList.toggle("hidden", isLogin);
-  }
+  <div id="formContainer">
+    <div id="toggleContainer">
+      <button onclick="showLogin()">Login</button>
+      <button onclick="showSignup()">Sign Up</button>
+    </div>
 
-  function signup() {
-    const email = document.getElementById("signupEmail").value;
-    const password = document.getElementById("signupPassword").value;
-    const username = document.getElementById("signupUsername").value;
-    auth.createUserWithEmailAndPassword(email, password).then(userCred => {
-      const uid = userCred.user.uid;
-      return db.ref("users/" + uid).set({
-        email,
-        username,
-        name: "",
-        age: "",
-        gender: "",
-        bio: "",
-        picURL: "",
-        verified: false
-      }).then(() => {
-        userCred.user.sendEmailVerification();
-        showProfile(uid);
-      });
-    }).catch(console.error);
-  }
+    <div id="loginForm">
+      <input type="email" id="loginEmail" placeholder="Email">
+      <input type="password" id="loginPassword" placeholder="Password">
+      <button onclick="login()">Login</button>
+    </div>
 
-  function login() {
-    const email = document.getElementById("loginEmail").value;
-    const password = document.getElementById("loginPassword").value;
-    auth.signInWithEmailAndPassword(email, password).then(userCred => {
-      showProfile(userCred.user.uid);
-    }).catch(console.error);
-  }
+    <div id="signupForm" style="display:none;">
+      <input type="email" id="signupEmail" placeholder="Email">
+      <input type="text" id="signupUsername" placeholder="Username">
+      <input type="password" id="signupPassword" placeholder="Password (min 8 chars)">
+      <button onclick="signup()">Sign Up</button>
+    </div>
+  </div>
 
-  function showProfile(uid) {
-    document.getElementById("loginForm").classList.add("hidden");
-    document.getElementById("signupForm").classList.add("hidden");
+  <div id="profileView">
+    <img id="profilePicDisplay" class="profile-pic" onclick="toggleFullSize()" />
+    <h2 id="profileUsername"></h2>
+    <p id="profileBio"></p>
+    <p id="profileAgeGender"></p>
+    <button onclick="showEditProfile()">Edit Profile</button>
+  </div>
 
-    db.ref("users/" + uid).once("value").then(snapshot => {
-      const data = snapshot.val();
-      const user = auth.currentUser;
-      const verified = user.emailVerified;
+  <div id="editProfileSection">
+    <input type="text" id="editUsername" placeholder="Username">
+    <textarea id="editBio" placeholder="Bio"></textarea>
+    <input type="number" id="editAge" placeholder="Age">
+    <input type="text" id="editGender" placeholder="Gender">
+    <input type="file" id="editPicInput">
+    <button onclick="saveProfile()">Save Profile</button>
+    <button onclick="cancelEdit()">Cancel</button>
+  </div>
 
-      document.getElementById("statusTag").innerText = verified
-        ? "Status: Verified (Full Access)"
-        : "Status: Verify your email for full access";
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
+      authDomain: "void-d9ec4.firebaseapp.com",
+      databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
+      projectId: "void-d9ec4",
+      storageBucket: "void-d9ec4.appspot.com",
+      messagingSenderId: "267268035851",
+      appId: "1:267268035851:web:d535fe4175c06f170f3e0e",
+      measurementId: "G-78DGNW8HV3"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-      document.getElementById("displayName").innerText = data.name || "—";
-      document.getElementById("displayAge").innerText = data.age || "—";
-      document.getElementById("displayGender").innerText = data.gender || "—";
-      document.getElementById("displayBio").innerText = data.bio || "—";
-      document.getElementById("profilePic").src = data.picURL || "https://via.placeholder.com/120";
-      document.getElementById("fullPic").src = data.picURL || "";
+    const auth = firebase.auth();
+    const db = firebase.database();
+    const storage = firebase.storage();
 
-      document.getElementById("profileView").classList.remove("hidden");
-    });
-  }
+    const formContainer = document.getElementById("formContainer");
+    const profileView = document.getElementById("profileView");
+    const editSection = document.getElementById("editProfileSection");
+    const verifyMessage = document.getElementById("verifyMessage");
 
-  function showEditProfile() {
-    document.getElementById("profileView").classList.add("hidden");
-    document.getElementById("editProfile").classList.remove("hidden");
-  }
+    function showLogin() {
+      document.getElementById("loginForm").style.display = "block";
+      document.getElementById("signupForm").style.display = "none";
+    }
 
-  function cancelEdit() {
-    document.getElementById("editProfile").classList.add("hidden");
-    document.getElementById("profileView").classList.remove("hidden");
-  }
+    function showSignup() {
+      document.getElementById("loginForm").style.display = "none";
+      document.getElementById("signupForm").style.display = "block";
+    }
 
-  function saveProfile() {
-    const name = document.getElementById("name").value;
-    const age = document.getElementById("age").value;
-    const gender = document.getElementById("gender").value;
-    const bio = document.getElementById("bio").value;
-    const uid = auth.currentUser.uid;
-    const file = document.getElementById("picUpload").files[0];
+    function signup() {
+      const email = document.getElementById("signupEmail").value;
+      const username = document.getElementById("signupUsername").value;
+      const password = document.getElementById("signupPassword").value;
 
-    if (file) {
-      const ref = storage.ref("profilePics/" + uid);
-      ref.put(file).then(snapshot => {
-        snapshot.ref.getDownloadURL().then(url => {
-          db.ref("users/" + uid).update({ name, age, gender, bio, picURL: url }).then(() => {
-            showProfile(uid);
-            document.getElementById("editProfile").classList.add("hidden");
-          });
+      if (password.length < 8 || username.length < 6) {
+        alert("Password must be at least 8 characters and username at least 6.");
+        return;
+      }
+
+      auth.createUserWithEmailAndPassword(email, password).then(cred => {
+        cred.user.sendEmailVerification();
+        db.ref("users/" + cred.user.uid).set({
+          email,
+          username,
+          bio: "",
+          age: "",
+          gender: "",
+          profilePic: ""
         });
-      }).catch(console.error);
-    } else {
-      db.ref("users/" + uid).update({ name, age, gender, bio }).then(() => {
-        showProfile(uid);
-        document.getElementById("editProfile").classList.add("hidden");
       });
     }
-  }
 
-  function toggleFullPic() {
-    const full = document.getElementById("fullPic");
-    full.style.display = full.style.display === "none" ? "block" : "none";
-  }
+    function login() {
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+      auth.signInWithEmailAndPassword(email, password);
+    }
 
-  auth.onAuthStateChanged(user => {
-    if (user) showProfile(user.uid);
-  });
-</script>
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        if (!user.emailVerified) {
+          verifyMessage.innerText = "Please verify your email for full access.";
+        } else {
+          verifyMessage.innerText = "";
+        }
+        formContainer.style.display = "none";
+        loadProfile(user.uid);
+      } else {
+        formContainer.style.display = "block";
+        profileView.style.display = "none";
+        editSection.style.display = "none";
+      }
+    });
+
+    function loadProfile(uid) {
+      db.ref("users/" + uid).once("value").then(snapshot => {
+        const data = snapshot.val();
+        document.getElementById("profileUsername").innerText = data.username;
+        document.getElementById("profileBio").innerText = data.bio;
+        document.getElementById("profileAgeGender").innerText = `${data.age || ''} ${data.gender || ''}`;
+        document.getElementById("profilePicDisplay").src = data.profilePic || "https://via.placeholder.com/200";
+        profileView.style.display = "block";
+      });
+    }
+
+    function showEditProfile() {
+      profileView.style.display = "none";
+      editSection.style.display = "block";
+      const uid = auth.currentUser.uid;
+      db.ref("users/" + uid).once("value").then(snapshot => {
+        const data = snapshot.val();
+        document.getElementById("editUsername").value = data.username;
+        document.getElementById("editBio").value = data.bio;
+        document.getElementById("editAge").value = data.age;
+        document.getElementById("editGender").value = data.gender;
+      });
+    }
+
+    function cancelEdit() {
+      editSection.style.display = "none";
+      profileView.style.display = "block";
+    }
+
+    function saveProfile() {
+      const uid = auth.currentUser.uid;
+      const username = document.getElementById("editUsername").value;
+      const bio = document.getElementById("editBio").value;
+      const age = document.getElementById("editAge").value;
+      const gender = document.getElementById("editGender").value;
+      const file = document.getElementById("editPicInput").files[0];
+
+      const updateData = { username, bio, age, gender };
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = new Image();
+          img.src = e.target.result;
+          img.onload = function () {
+            const canvas = document.createElement("canvas");
+            canvas.width = 200;
+            canvas.height = 200;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, 200, 200);
+            canvas.toBlob(function (blob) {
+              const ref = storage.ref("profilePics/" + uid + ".jpg");
+              ref.put(blob).then(snapshot => {
+                ref.getDownloadURL().then(url => {
+                  updateData.profilePic = url;
+                  db.ref("users/" + uid).update(updateData).then(() => {
+                    editSection.style.display = "none";
+                    loadProfile(uid);
+                  });
+                });
+              });
+            }, "image/jpeg");
+          };
+        };
+        reader.readAsDataURL(file);
+      } else {
+        db.ref("users/" + uid).update(updateData).then(() => {
+          editSection.style.display = "none";
+          loadProfile(uid);
+        });
+      }
+    }
+
+    function toggleFullSize() {
+      const img = document.getElementById("profilePicDisplay");
+      img.classList.toggle("fullsize");
+    }
+  </script>
+</body>
+</html>

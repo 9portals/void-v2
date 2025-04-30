@@ -30,6 +30,7 @@
       padding: 10px;
       border: none;
       border-radius: 4px;
+      width: 250px;
     }
 
     button {
@@ -53,9 +54,20 @@
     #editProfileForm {
       margin-top: 20px;
     }
+
+    img.profile-pic {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      margin-top: 10px;
+    }
+
+    .warning {
+      color: orange;
+    }
   </style>
 
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
@@ -83,7 +95,13 @@
 
   <div id="profileView" class="hidden">
     <h2>Your Profile</h2>
+    <div id="verifyNotice" class="warning hidden">Please verify your email to unlock full profile access. <button onclick="sendVerification()">Resend Email</button></div>
+    <img id="profilePic" class="profile-pic" src="" alt="Profile Picture" />
     <p><strong>Username:</strong> <span id="viewUsername"></span></p>
+    <p><strong>Name:</strong> <span id="viewName"></span></p>
+    <p><strong>Age:</strong> <span id="viewAge"></span></p>
+    <p><strong>Gender:</strong> <span id="viewGender"></span></p>
+    <p><strong>Bio:</strong> <span id="viewBio"></span></p>
     <p><strong>Email:</strong> <span id="viewEmail"></span></p>
     <button onclick="showEditForm()">Edit Profile</button>
     <button onclick="logout()">Logout</button>
@@ -91,7 +109,12 @@
 
   <div id="editProfileForm" class="hidden">
     <h2>Edit Profile</h2>
-    <input type="text" id="editUsername" placeholder="New Username"><br>
+    <input type="text" id="editUsername" placeholder="Username"><br>
+    <input type="text" id="editName" placeholder="Name"><br>
+    <input type="number" id="editAge" placeholder="Age"><br>
+    <input type="text" id="editGender" placeholder="Gender"><br>
+    <input type="text" id="editBio" placeholder="Bio"><br>
+    <input type="text" id="editPicUrl" placeholder="Profile Picture URL"><br>
     <button onclick="saveProfile()">Save</button>
   </div>
 
@@ -126,10 +149,19 @@
       }
 
       auth.createUserWithEmailAndPassword(email, password).then(userCred => {
-        const uid = userCred.user.uid;
-        db.ref("users/" + uid).set({
+        const user = userCred.user;
+        return db.ref("users/" + user.uid).set({
           username: username,
-          email: email
+          email: email,
+          name: "",
+          age: "",
+          gender: "",
+          bio: "",
+          pic: ""
+        }).then(() => {
+          return user.sendEmailVerification().then(() => {
+            alert("Verification email sent. Please verify to unlock full features.");
+          });
         });
       }).catch(err => alert(err.message));
     }
@@ -137,7 +169,6 @@
     function login() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-
       auth.signInWithEmailAndPassword(email, password).catch(err => alert(err.message));
     }
 
@@ -151,15 +182,44 @@
     }
 
     function saveProfile() {
-      const newUsername = document.getElementById("editUsername").value;
       const user = auth.currentUser;
-      if (user && newUsername.length >= 6) {
-        db.ref("users/" + user.uid).update({ username: newUsername });
-        document.getElementById("viewUsername").textContent = newUsername;
+      if (!user) return;
+
+      const updates = {
+        username: document.getElementById("editUsername").value,
+        name: document.getElementById("editName").value,
+        age: document.getElementById("editAge").value,
+        gender: document.getElementById("editGender").value,
+        bio: document.getElementById("editBio").value,
+        pic: document.getElementById("editPicUrl").value
+      };
+
+      db.ref("users/" + user.uid).update(updates).then(() => {
+        loadProfile(user.uid); // Refresh display
         document.getElementById("editProfileForm").classList.add("hidden");
-      } else {
-        alert("Username must be at least 6 characters.");
+      });
+    }
+
+    function sendVerification() {
+      const user = auth.currentUser;
+      if (user && !user.emailVerified) {
+        user.sendEmailVerification().then(() => {
+          alert("Verification email resent.");
+        });
       }
+    }
+
+    function loadProfile(uid) {
+      db.ref("users/" + uid).once("value").then(snapshot => {
+        const data = snapshot.val();
+        document.getElementById("viewUsername").textContent = data.username || "";
+        document.getElementById("viewName").textContent = data.name || "";
+        document.getElementById("viewAge").textContent = data.age || "";
+        document.getElementById("viewGender").textContent = data.gender || "";
+        document.getElementById("viewBio").textContent = data.bio || "";
+        document.getElementById("viewEmail").textContent = data.email || "";
+        document.getElementById("profilePic").src = data.pic || "";
+      });
     }
 
     auth.onAuthStateChanged(user => {
@@ -168,11 +228,13 @@
         document.getElementById("signupForm").classList.add("hidden");
         document.getElementById("profileView").classList.remove("hidden");
 
-        db.ref("users/" + user.uid).once("value").then(snapshot => {
-          const data = snapshot.val();
-          document.getElementById("viewUsername").textContent = data.username;
-          document.getElementById("viewEmail").textContent = data.email;
-        });
+        if (!user.emailVerified) {
+          document.getElementById("verifyNotice").classList.remove("hidden");
+        } else {
+          document.getElementById("verifyNotice").classList.add("hidden");
+        }
+
+        loadProfile(user.uid);
       }
     });
   </script>

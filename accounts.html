@@ -3,39 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Void — Account</title>
+  <title>VOID — Account</title>
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background-color: black;
       color: white;
-      text-align: center;
     }
 
     header {
       padding: 20px;
+      text-align: center;
       background-color: #111;
       font-size: 28px;
       font-weight: bold;
       border-bottom: 1px solid #444;
     }
 
-    .form-container {
-      margin-top: 30px;
+    .toggle-container {
+      text-align: center;
+      margin: 20px 0;
     }
 
-    input, button {
-      margin: 5px;
+    .hidden { display: none; }
+
+    .form-group {
+      margin: 10px auto;
+      width: 80%;
+      max-width: 400px;
+    }
+
+    input, textarea, select {
+      width: 100%;
       padding: 10px;
-      border: none;
+      margin: 5px 0;
+      background-color: #222;
+      color: white;
+      border: 1px solid #444;
       border-radius: 4px;
-      width: 250px;
     }
 
     button {
+      padding: 10px 20px;
+      margin-top: 10px;
       background-color: #333;
       color: white;
+      border: none;
       cursor: pointer;
     }
 
@@ -43,80 +57,80 @@
       background-color: #555;
     }
 
-    .hidden {
-      display: none;
-    }
-
-    #profileView {
-      margin-top: 30px;
-    }
-
-    #editProfileForm {
-      margin-top: 20px;
-    }
-
-    img.profile-pic {
-      width: 100px;
-      height: 100px;
+    #profilePic {
+      width: 120px;
+      height: 120px;
       object-fit: cover;
       border-radius: 50%;
-      margin-top: 10px;
+      cursor: pointer;
     }
 
-    .warning {
-      color: orange;
+    #fullPic {
+      max-width: 90vw;
+      max-height: 90vh;
+      display: none;
+      margin: 20px auto;
+    }
+
+    #statusTag {
+      font-size: 12px;
+      margin-top: 5px;
+      color: #aaa;
     }
   </style>
+</head>
+<body>
+  <header>VOID — Account</header>
 
+  <div class="toggle-container">
+    <button onclick="toggleForm(true)">Login</button>
+    <button onclick="toggleForm(false)">Sign Up</button>
+  </div>
+
+  <div id="loginForm" class="form-group">
+    <input type="email" id="loginEmail" placeholder="Email">
+    <input type="password" id="loginPassword" placeholder="Password">
+    <button onclick="login()">Login</button>
+  </div>
+
+  <div id="signupForm" class="form-group hidden">
+    <input type="email" id="signupEmail" placeholder="Email">
+    <input type="password" id="signupPassword" placeholder="Password">
+    <input type="text" id="signupUsername" placeholder="Username">
+    <button onclick="signup()">Sign Up</button>
+  </div>
+
+  <div id="profileView" class="form-group hidden">
+    <img id="profilePic" src="https://via.placeholder.com/120" onclick="toggleFullPic()" />
+    <img id="fullPic" src="" />
+    <div id="statusTag">Status: Unverified</div>
+    <p><strong>Name:</strong> <span id="displayName">—</span></p>
+    <p><strong>Age:</strong> <span id="displayAge">—</span></p>
+    <p><strong>Gender:</strong> <span id="displayGender">—</span></p>
+    <p><strong>Bio:</strong> <span id="displayBio">—</span></p>
+    <button onclick="showEditProfile()">Edit Profile</button>
+  </div>
+
+  <div id="editProfile" class="form-group hidden">
+    <input type="text" id="name" placeholder="Name">
+    <input type="number" id="age" placeholder="Age">
+    <select id="gender">
+      <option value="">Select Gender</option>
+      <option>Male</option>
+      <option>Female</option>
+      <option>Other</option>
+    </select>
+    <textarea id="bio" placeholder="Bio"></textarea>
+    <input type="file" id="picUpload" accept="image/*" />
+    <button onclick="saveProfile()">Save Profile</button>
+    <button onclick="cancelEdit()">Cancel</button>
+  </div>
+
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
-</head>
-<body>
-
-  <header>VOID — Accounts</header>
-
-  <div class="form-container" id="authForms">
-    <h2 id="formTitle">Login</h2>
-    <input type="email" id="email" placeholder="Email"><br>
-    <input type="password" id="password" placeholder="Password"><br>
-    <button onclick="login()">Login</button>
-    <button onclick="toggleForm()">Switch to Signup</button>
-  </div>
-
-  <div class="form-container hidden" id="signupForm">
-    <h2>Signup</h2>
-    <input type="text" id="signupUsername" placeholder="Username"><br>
-    <input type="email" id="signupEmail" placeholder="Email"><br>
-    <input type="password" id="signupPassword" placeholder="Password"><br>
-    <button onclick="signup()">Signup</button>
-    <button onclick="toggleForm()">Back to Login</button>
-  </div>
-
-  <div id="profileView" class="hidden">
-    <h2>Your Profile</h2>
-    <div id="verifyNotice" class="warning hidden">Please verify your email to unlock full profile access. <button onclick="sendVerification()">Resend Email</button></div>
-    <img id="profilePic" class="profile-pic" src="" alt="Profile Picture" />
-    <p><strong>Username:</strong> <span id="viewUsername"></span></p>
-    <p><strong>Name:</strong> <span id="viewName"></span></p>
-    <p><strong>Age:</strong> <span id="viewAge"></span></p>
-    <p><strong>Gender:</strong> <span id="viewGender"></span></p>
-    <p><strong>Bio:</strong> <span id="viewBio"></span></p>
-    <p><strong>Email:</strong> <span id="viewEmail"></span></p>
-    <button onclick="showEditForm()">Edit Profile</button>
-    <button onclick="logout()">Logout</button>
-  </div>
-
-  <div id="editProfileForm" class="hidden">
-    <h2>Edit Profile</h2>
-    <input type="text" id="editUsername" placeholder="Username"><br>
-    <input type="text" id="editName" placeholder="Name"><br>
-    <input type="number" id="editAge" placeholder="Age"><br>
-    <input type="text" id="editGender" placeholder="Gender"><br>
-    <input type="text" id="editBio" placeholder="Bio"><br>
-    <input type="text" id="editPicUrl" placeholder="Profile Picture URL"><br>
-    <button onclick="saveProfile()">Save</button>
-  </div>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-storage-compat.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -124,117 +138,111 @@
       authDomain: "void-d9ec4.firebaseapp.com",
       databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
       projectId: "void-d9ec4",
-      storageBucket: "void-d9ec4.firebasestorage.app",
+      storageBucket: "void-d9ec4.appspot.com",
       messagingSenderId: "267268035851",
-      appId: "1:267268035851:web:d535fe4175c06f170f3e0e",
-      measurementId: "G-78DGNW8HV3"
+      appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
+    const storage = firebase.storage();
 
-    function toggleForm() {
-      document.getElementById('authForms').classList.toggle('hidden');
-      document.getElementById('signupForm').classList.toggle('hidden');
+    function toggleForm(isLogin) {
+      document.getElementById("loginForm").classList.toggle("hidden", !isLogin);
+      document.getElementById("signupForm").classList.toggle("hidden", isLogin);
     }
 
     function signup() {
-      const email = document.getElementById('signupEmail').value;
-      const password = document.getElementById('signupPassword').value;
-      const username = document.getElementById('signupUsername').value;
-
-      if (username.length < 6 || password.length < 8) {
-        alert("Username must be at least 6 characters, password at least 8.");
-        return;
-      }
-
+      const email = document.getElementById("signupEmail").value;
+      const password = document.getElementById("signupPassword").value;
+      const username = document.getElementById("signupUsername").value;
       auth.createUserWithEmailAndPassword(email, password).then(userCred => {
-        const user = userCred.user;
-        return db.ref("users/" + user.uid).set({
-          username: username,
-          email: email,
+        const uid = userCred.user.uid;
+        return db.ref("users/" + uid).set({
+          email,
+          username,
           name: "",
           age: "",
           gender: "",
           bio: "",
-          pic: ""
+          picURL: "",
+          verified: false
         }).then(() => {
-          return user.sendEmailVerification().then(() => {
-            alert("Verification email sent. Please verify to unlock full features.");
-          });
+          userCred.user.sendEmailVerification();
+          showProfile(uid);
         });
-      }).catch(err => alert(err.message));
+      }).catch(console.error);
     }
 
     function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      auth.signInWithEmailAndPassword(email, password).catch(err => alert(err.message));
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+      auth.signInWithEmailAndPassword(email, password).then(userCred => {
+        showProfile(userCred.user.uid);
+      }).catch(console.error);
     }
 
-    function logout() {
-      auth.signOut();
-      location.reload();
-    }
+    function showProfile(uid) {
+      document.getElementById("loginForm").classList.add("hidden");
+      document.getElementById("signupForm").classList.add("hidden");
 
-    function showEditForm() {
-      document.getElementById("editProfileForm").classList.remove("hidden");
-    }
-
-    function saveProfile() {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      const updates = {
-        username: document.getElementById("editUsername").value,
-        name: document.getElementById("editName").value,
-        age: document.getElementById("editAge").value,
-        gender: document.getElementById("editGender").value,
-        bio: document.getElementById("editBio").value,
-        pic: document.getElementById("editPicUrl").value
-      };
-
-      db.ref("users/" + user.uid).update(updates).then(() => {
-        loadProfile(user.uid); // Refresh display
-        document.getElementById("editProfileForm").classList.add("hidden");
+      db.ref("users/" + uid).once("value").then(snapshot => {
+        const data = snapshot.val();
+        const user = auth.currentUser;
+        document.getElementById("statusTag").innerText = "Status: " + (user.emailVerified ? "Verified" : "Unverified");
+        document.getElementById("displayName").innerText = data.name || "—";
+        document.getElementById("displayAge").innerText = data.age || "—";
+        document.getElementById("displayGender").innerText = data.gender || "—";
+        document.getElementById("displayBio").innerText = data.bio || "—";
+        document.getElementById("profilePic").src = data.picURL || "https://via.placeholder.com/120";
+        document.getElementById("fullPic").src = data.picURL || "";
+        document.getElementById("profileView").classList.remove("hidden");
       });
     }
 
-    function sendVerification() {
-      const user = auth.currentUser;
-      if (user && !user.emailVerified) {
-        user.sendEmailVerification().then(() => {
-          alert("Verification email resent.");
+    function showEditProfile() {
+      document.getElementById("profileView").classList.add("hidden");
+      document.getElementById("editProfile").classList.remove("hidden");
+    }
+
+    function cancelEdit() {
+      document.getElementById("editProfile").classList.add("hidden");
+      document.getElementById("profileView").classList.remove("hidden");
+    }
+
+    function saveProfile() {
+      const name = document.getElementById("name").value;
+      const age = document.getElementById("age").value;
+      const gender = document.getElementById("gender").value;
+      const bio = document.getElementById("bio").value;
+      const uid = auth.currentUser.uid;
+      const file = document.getElementById("picUpload").files[0];
+
+      if (file) {
+        const ref = storage.ref("profilePics/" + uid);
+        ref.put(file).then(snapshot => {
+          return snapshot.ref.getDownloadURL().then(url => {
+            db.ref("users/" + uid).update({ name, age, gender, bio, picURL: url });
+            showProfile(uid);
+            document.getElementById("editProfile").classList.add("hidden");
+          });
+        });
+      } else {
+        db.ref("users/" + uid).update({ name, age, gender, bio }).then(() => {
+          showProfile(uid);
+          document.getElementById("editProfile").classList.add("hidden");
         });
       }
     }
 
-    function loadProfile(uid) {
-      db.ref("users/" + uid).once("value").then(snapshot => {
-        const data = snapshot.val();
-        document.getElementById("viewUsername").textContent = data.username || "";
-        document.getElementById("viewName").textContent = data.name || "";
-        document.getElementById("viewAge").textContent = data.age || "";
-        document.getElementById("viewGender").textContent = data.gender || "";
-        document.getElementById("viewBio").textContent = data.bio || "";
-        document.getElementById("viewEmail").textContent = data.email || "";
-        document.getElementById("profilePic").src = data.pic || "";
-      });
+    function toggleFullPic() {
+      const full = document.getElementById("fullPic");
+      full.style.display = full.style.display === "none" ? "block" : "none";
     }
 
     auth.onAuthStateChanged(user => {
       if (user) {
-        document.getElementById("authForms").classList.add("hidden");
-        document.getElementById("signupForm").classList.add("hidden");
-        document.getElementById("profileView").classList.remove("hidden");
-
-        if (!user.emailVerified) {
-          document.getElementById("verifyNotice").classList.remove("hidden");
-        } else {
-          document.getElementById("verifyNotice").classList.add("hidden");
-        }
-
-        loadProfile(user.uid);
+        showProfile(user.uid);
       }
     });
   </script>

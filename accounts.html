@@ -94,7 +94,6 @@
       appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
     };
     firebase.initializeApp(firebaseConfig);
-
     const auth = firebase.auth();
     const db = firebase.database();
     const storage = firebase.storage();
@@ -142,17 +141,24 @@
     function signup() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      auth.createUserWithEmailAndPassword(email, password).catch(alert);
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => alert('Signed up successfully. You are now logged in.'))
+        .catch(error => alert(error.message));
     }
 
     function login() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      auth.signInWithEmailAndPassword(email, password).catch(alert);
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => alert('Logged in successfully.'))
+        .catch(error => alert(error.message));
     }
 
     function logout() {
-      auth.signOut();
+      auth.signOut().then(() => {
+        alert("Logged out.");
+        location.reload();
+      });
     }
 
     function saveProfile() {

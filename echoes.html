@@ -1,4 +1,4 @@
-CTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -58,26 +58,28 @@ CTYPE html>
       color: #aaa;
     }
 
-    #newThread {
+    #newEcho {
       display: flex;
-      justify-content: center;
-      padding: 10px;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
       background-color: #111;
       border-bottom: 1px solid #333;
     }
 
-    #threadInput {
-      width: 60%;
+    #echoTitle, #echoContent {
+      width: 80%;
       padding: 10px;
+      margin: 5px 0;
       border: 1px solid #333;
       border-radius: 4px;
       background-color: #111;
       color: white;
-      margin-right: 10px;
     }
 
-    #postThread {
+    #postEcho {
       padding: 10px 20px;
+      margin-top: 10px;
       border: none;
       background-color: #333;
       color: white;
@@ -85,7 +87,7 @@ CTYPE html>
       border-radius: 4px;
     }
 
-    #postThread:hover {
+    #postEcho:hover {
       background-color: #555;
     }
 
@@ -97,28 +99,32 @@ CTYPE html>
 
     .thread {
       background-color: #222;
-      padding: 10px;
-      margin-bottom: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
       border-radius: 6px;
     }
 
-    .countdown {
-      font-size: 12px;
-      color: #aaa;
-      margin-top: 5px;
+    .threadTitle {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .threadContent {
+      margin-top: 6px;
+      font-size: 15px;
     }
 
     .replyInput {
       width: 100%;
-      margin-top: 8px;
-      padding: 6px;
+      margin-top: 10px;
+      padding: 8px;
       background-color: #111;
       border: 1px solid #333;
       color: white;
     }
 
     .replyButton {
-      margin-top: 4px;
+      margin-top: 6px;
       padding: 6px 10px;
       background-color: #333;
       color: white;
@@ -156,109 +162,117 @@ CTYPE html>
     <div onclick="alert('Coming soon')">System Core</div>
   </div>
 
-  <div id="subtitle">Start a thread that echoes for 1 hour...</div>
+  <div id="subtitle">Start a new Echo discussion...</div>
 
-  <div id="newThread">
-    <input id="threadInput" placeholder="What's your thought..." />
-    <button id="postThread">Echo</button>
+  <div id="newEcho">
+    <input id="echoTitle" placeholder="Echo title..." />
+    <textarea id="echoContent" placeholder="Write your topic..." rows="4"></textarea>
+    <button id="postEcho">Post Echo</button>
   </div>
 
   <div id="threads"></div>
 
   <script>
-    function toggleNav() {
-      const menu = document.getElementById("navMenu");
-      menu.style.display = menu.style.display === "block" ? "none" : "block";
-    }
+  // Firebase config for your project
+  const firebaseConfig = {
+    apiKey: "AIzaSyDd7kvi8Weo5jRzeRciBKEuYPJsB34fYjA",
+    authDomain: "void-d9ec4.firebaseapp.com",
+    projectId: "void-d9ec4",
+    storageBucket: "void-d9ec4.appspot.com",
+    messagingSenderId: "267268035851",
+    appId: "1:267268035851:web:d535fe4175c06f170f3e0e",
+    databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com/"
+  };
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyClW4zHDde1rQm6RkHQcD2rM0sklBBgdrM",
-      authDomain: "void-d9ec4.firebaseapp.com",
-      databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
-      projectId: "void-d9ec4",
-      storageBucket: "void-d9ec4.appspot.com",
-      messagingSenderId: "267268035851",
-      appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-    const threadsDiv = document.getElementById("threads");
-    const threadInput = document.getElementById("threadInput");
-    const postButton = document.getElementById("postThread");
+  const threadsDiv = document.getElementById("threads");
+  const postEchoBtn = document.getElementById("postEcho");
 
-    postButton.onclick = () => {
-      const text = threadInput.value.trim();
-      if (text !== "") {
-        const timestamp = Date.now();
-        const threadRef = db.ref("echoes").push();
-        threadRef.set({
-          text,
-          timestamp,
-          replies: []
-        });
-        threadInput.value = "";
-      }
+  postEchoBtn.onclick = () => {
+    const title = document.getElementById("echoTitle").value.trim();
+    const content = document.getElementById("echoContent").value.trim();
+
+    if (!title || !content) return alert("Title and content required.");
+
+    const newEcho = {
+      title,
+      content,
+      timestamp: Date.now()
     };
 
-    function renderThreads(snapshot) {
-      threadsDiv.innerHTML = "";
-      const now = Date.now();
+    const threadRef = db.ref("echoes").push();
+    threadRef.set(newEcho);
+    document.getElementById("echoTitle").value = "";
+    document.getElementById("echoContent").value = "";
+  };
 
-      snapshot.forEach(child => {
-        const key = child.key;
-        const data = child.val();
-        const expiresAt = data.timestamp + 60 * 60 * 1000; // 1 hour
-        const secondsLeft = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+  function renderThreads(snapshot) {
+    threadsDiv.innerHTML = "";
+    const echoes = snapshot.val();
 
-        if (secondsLeft <= 0) {
-          db.ref("echoes").child(key).remove();
-          return;
-        }
+    if (!echoes) return;
 
-        const threadEl = document.createElement("div");
-        threadEl.className = "thread";
+    Object.entries(echoes).reverse().forEach(([id, echo]) => {
+      const threadDiv = document.createElement("div");
+      threadDiv.className = "thread";
 
-        threadEl.innerHTML = `
-          <div>${data.text}</div>
-          <div class="countdown" id="cd-${key}">${secondsLeft}s left</div>
-          <div class="replies">${(data.replies || []).map(reply => `<div class="reply">${reply}</div>`).join("")}</div>
-          <input class="replyInput" id="input-${key}" placeholder="Reply..."/>
-          <button class="replyButton" onclick="replyTo('${key}')">Reply</button>
-        `;
+      const title = document.createElement("div");
+      title.className = "threadTitle";
+      title.textContent = echo.title;
 
-        threadsDiv.appendChild(threadEl);
+      const content = document.createElement("div");
+      content.className = "threadContent";
+      content.textContent = echo.content;
 
-        // Countdown updates
-        setInterval(() => {
-          const newSeconds = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
-          const cdEl = document.getElementById("cd-" + key);
-          if (cdEl) cdEl.textContent = `${newSeconds}s left`;
-        }, 1000);
+      const replyInput = document.createElement("input");
+      replyInput.className = "replyInput";
+      replyInput.placeholder = "Reply...";
 
-        // Auto-remove after expiration
-        setTimeout(() => {
-          db.ref("echoes").child(key).remove();
-        }, expiresAt - now);
-      });
-    }
+      const replyBtn = document.createElement("button");
+      replyBtn.className = "replyButton";
+      replyBtn.textContent = "Post Reply";
 
-    function replyTo(key) {
-      const input = document.getElementById("input-" + key);
-      const reply = input.value.trim();
-      if (reply) {
-        const threadRef = db.ref("echoes").child(key).child("replies");
-        threadRef.once("value", snap => {
-          const replies = snap.val() || [];
-          replies.push(reply);
-          threadRef.set(replies);
+      const repliesDiv = document.createElement("div");
+
+      replyBtn.onclick = () => {
+        const replyText = replyInput.value.trim();
+        if (!replyText) return;
+        db.ref(`echoes/${id}/replies`).push({
+          text: replyText,
+          time: Date.now()
         });
-        input.value = "";
+        replyInput.value = "";
+      };
+
+      // Load replies
+      if (echo.replies) {
+        Object.values(echo.replies).forEach(reply => {
+          const replyDiv = document.createElement("div");
+          replyDiv.className = "reply";
+          replyDiv.textContent = reply.text;
+          repliesDiv.appendChild(replyDiv);
+        });
       }
-    }
 
-    db.ref("echoes").on("value", renderThreads);
-  </script>
+      threadDiv.appendChild(title);
+      threadDiv.appendChild(content);
+      threadDiv.appendChild(replyInput);
+      threadDiv.appendChild(replyBtn);
+      threadDiv.appendChild(repliesDiv);
 
+      threadsDiv.appendChild(threadDiv);
+    });
+  }
+
+  db.ref("echoes").on("value", renderThreads);
+
+  function toggleNav() {
+    const nav = document.getElementById("navMenu");
+    nav.style.display = nav.style.display === "block" ? "none" : "block";
+  }
+</script>
 </body>
 </html>
+

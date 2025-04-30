@@ -58,28 +58,26 @@
       color: #aaa;
     }
 
-    #newEcho {
+    #newThread {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
+      justify-content: center;
+      padding: 10px;
       background-color: #111;
       border-bottom: 1px solid #333;
     }
 
-    #echoTitle, #echoContent {
-      width: 80%;
+    #threadInput {
+      width: 60%;
       padding: 10px;
-      margin: 5px 0;
       border: 1px solid #333;
       border-radius: 4px;
       background-color: #111;
       color: white;
+      margin-right: 10px;
     }
 
-    #postEcho {
+    #postThread {
       padding: 10px 20px;
-      margin-top: 10px;
       border: none;
       background-color: #333;
       color: white;
@@ -87,7 +85,7 @@
       border-radius: 4px;
     }
 
-    #postEcho:hover {
+    #postThread:hover {
       background-color: #555;
     }
 
@@ -99,32 +97,28 @@
 
     .thread {
       background-color: #222;
-      padding: 12px;
-      margin-bottom: 14px;
+      padding: 10px;
+      margin-bottom: 12px;
       border-radius: 6px;
     }
 
-    .threadTitle {
-      font-size: 18px;
-      font-weight: bold;
-    }
-
-    .threadContent {
-      margin-top: 6px;
-      font-size: 15px;
+    .countdown {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 5px;
     }
 
     .replyInput {
       width: 100%;
-      margin-top: 10px;
-      padding: 8px;
+      margin-top: 8px;
+      padding: 6px;
       background-color: #111;
       border: 1px solid #333;
       color: white;
     }
 
     .replyButton {
-      margin-top: 6px;
+      margin-top: 4px;
       padding: 6px 10px;
       background-color: #333;
       color: white;
@@ -143,136 +137,140 @@
       border-radius: 4px;
     }
   </style>
-
-  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
 </head>
 <body>
-
   <header>
-    VOID — Echoes
-    <span id="navToggle" onclick="toggleNav()">≡</span>
+    ECHOES
+    <span id="navToggle">≡</span>
   </header>
-
   <div id="navMenu">
-    <div onclick="location.href='index.html'">Enter the Abyss</div>
-    <div onclick="location.href='echoes.html'">Echoes</div>
-    <div onclick="alert('Coming soon')">Void Profiles</div>
-    <div onclick="alert('Coming soon')">Dark Messenger</div>
-    <div onclick="alert('Coming soon')">System Core</div>
+    <div onclick="location.href='index.html'">Home</div>
+    <div onclick="location.href='view-profiles.html'">View Profiles</div>
+    <div onclick="location.href='chat.html'">Global Chat</div>
+    <div onclick="location.href='edit-profile.html'">Edit Profile</div>
+    <div onclick="location.href='login.html'">Login</div>
+    <div onclick="location.href='signup.html'">Sign Up</div>
   </div>
+  <div id="subtitle">Start a discussion that echoes through the void.</div>
 
-  <div id="subtitle">Start a new Echo discussion...</div>
-
-  <div id="newEcho">
-    <input id="echoTitle" placeholder="Echo title..." />
-    <textarea id="echoContent" placeholder="Write your topic..." rows="4"></textarea>
-    <button id="postEcho">Post Echo</button>
+  <div id="newThread">
+    <input id="threadInput" type="text" placeholder="Write something..." />
+    <button id="postThread">Echo</button>
   </div>
 
   <div id="threads"></div>
 
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
   <script>
-  // Firebase config for your project
-  const firebaseConfig = {
-    apiKey: "AIzaSyDd7kvi8Weo5jRzeRciBKEuYPJsB34fYjA",
-    authDomain: "void-d9ec4.firebaseapp.com",
-    projectId: "void-d9ec4",
-    storageBucket: "void-d9ec4.appspot.com",
-    messagingSenderId: "267268035851",
-    appId: "1:267268035851:web:d535fe4175c06f170f3e0e",
-    databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com/"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-
-  const threadsDiv = document.getElementById("threads");
-  const postEchoBtn = document.getElementById("postEcho");
-
-  postEchoBtn.onclick = () => {
-    const title = document.getElementById("echoTitle").value.trim();
-    const content = document.getElementById("echoContent").value.trim();
-
-    if (!title || !content) return alert("Title and content required.");
-
-    const newEcho = {
-      title,
-      content,
-      timestamp: Date.now()
+    const firebaseConfig = {
+      apiKey: "AIzaSyBP8eY_0FYMqZnbGlXRcQ7fFuyLMIKe5hY",
+      authDomain: "void-d9ec4.firebaseapp.com",
+      databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
+      projectId: "void-d9ec4",
+      storageBucket: "void-d9ec4.appspot.com",
+      messagingSenderId: "267268035851",
+      appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
     };
 
-    const threadRef = db.ref("echoes").push();
-    threadRef.set(newEcho);
-    document.getElementById("echoTitle").value = "";
-    document.getElementById("echoContent").value = "";
-  };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-  function renderThreads(snapshot) {
-    threadsDiv.innerHTML = "";
-    const echoes = snapshot.val();
+    const threadInput = document.getElementById("threadInput");
+    const postThread = document.getElementById("postThread");
+    const threadsContainer = document.getElementById("threads");
 
-    if (!echoes) return;
+    postThread.onclick = () => {
+      const content = threadInput.value.trim();
+      if (!content) return;
 
-    Object.entries(echoes).reverse().forEach(([id, echo]) => {
-      const threadDiv = document.createElement("div");
-      threadDiv.className = "thread";
-
-      const title = document.createElement("div");
-      title.className = "threadTitle";
-      title.textContent = echo.title;
-
-      const content = document.createElement("div");
-      content.className = "threadContent";
-      content.textContent = echo.content;
-
-      const replyInput = document.createElement("input");
-      replyInput.className = "replyInput";
-      replyInput.placeholder = "Reply...";
-
-      const replyBtn = document.createElement("button");
-      replyBtn.className = "replyButton";
-      replyBtn.textContent = "Post Reply";
-
-      const repliesDiv = document.createElement("div");
-
-      replyBtn.onclick = () => {
-        const replyText = replyInput.value.trim();
-        if (!replyText) return;
-        db.ref(`echoes/${id}/replies`).push({
-          text: replyText,
-          time: Date.now()
-        });
-        replyInput.value = "";
+      const now = Date.now();
+      const thread = {
+        content,
+        timestamp: now,
+        replies: {}
       };
 
-      // Load replies
-      if (echo.replies) {
-        Object.values(echo.replies).forEach(reply => {
-          const replyDiv = document.createElement("div");
-          replyDiv.className = "reply";
-          replyDiv.textContent = reply.text;
-          repliesDiv.appendChild(replyDiv);
-        });
+      const newRef = db.ref("echoes").push();
+      newRef.set(thread);
+      threadInput.value = "";
+    };
+
+    function renderThreads(snapshot) {
+      threadsContainer.innerHTML = "";
+      const threads = snapshot.val();
+      if (!threads) return;
+
+      const entries = Object.entries(threads).sort((a, b) => b[1].timestamp - a[1].timestamp);
+
+      entries.forEach(([id, thread]) => {
+        const timeLeft = 10 * 60 * 1000 - (Date.now() - thread.timestamp);
+        if (timeLeft <= 0) {
+          db.ref("echoes/" + id).remove();
+          return;
+        }
+
+        const threadDiv = document.createElement("div");
+        threadDiv.className = "thread";
+        threadDiv.innerHTML = `
+          <div>${thread.content}</div>
+          <div class="countdown" id="timer-${id}"></div>
+          <div id="replies-${id}"></div>
+          <input class="replyInput" id="replyInput-${id}" placeholder="Reply..." />
+          <button class="replyButton" onclick="postReply('${id}')">Post</button>
+        `;
+
+        threadsContainer.appendChild(threadDiv);
+        startCountdown(`timer-${id}`, thread.timestamp, id);
+
+        const repliesDiv = document.getElementById(`replies-${id}`);
+        if (thread.replies) {
+          Object.values(thread.replies).forEach(reply => {
+            const r = document.createElement("div");
+            r.className = "reply";
+            r.textContent = reply;
+            repliesDiv.appendChild(r);
+          });
+        }
+      });
+    }
+
+    function postReply(threadId) {
+      const input = document.getElementById(`replyInput-${threadId}`);
+      const replyText = input.value.trim();
+      if (!replyText) return;
+
+      db.ref(`echoes/${threadId}/replies`).push(replyText);
+      input.value = "";
+    }
+
+    function startCountdown(elementId, startTime, threadId) {
+      const el = document.getElementById(elementId);
+      function update() {
+        const now = Date.now();
+        const remaining = 10 * 60 * 1000 - (now - startTime);
+        if (remaining <= 0) {
+          db.ref("echoes/" + threadId).remove();
+          return;
+        }
+        const minutes = Math.floor(remaining / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        el.textContent = `Disappears in ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        requestAnimationFrame(update);
       }
+      update();
+    }
 
-      threadDiv.appendChild(title);
-      threadDiv.appendChild(content);
-      threadDiv.appendChild(replyInput);
-      threadDiv.appendChild(replyBtn);
-      threadDiv.appendChild(repliesDiv);
+    db.ref("echoes").on("value", renderThreads);
 
-      threadsDiv.appendChild(threadDiv);
-    });
-  }
-
-  db.ref("echoes").on("value", renderThreads);
-
-  function toggleNav() {
-    const nav = document.getElementById("navMenu");
-    nav.style.display = nav.style.display === "block" ? "none" : "block";
-  }
-</script>
+    document.getElementById("navToggle").onclick = () => {
+      const nav = document.getElementById("navMenu");
+      nav.style.display = nav.style.display === "block" ? "none" : "block";
+    };
+  </script>
 </body>
 </html>
 
+  

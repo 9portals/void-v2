@@ -3,100 +3,203 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Echoes - The Void</title>
+  <title>VOID — Echoes</title>
   <style>
     body {
+      margin: 0;
+      font-family: Arial, sans-serif;
       background-color: black;
       color: white;
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
     }
+
     header {
       padding: 20px;
       text-align: center;
-      border-bottom: 1px solid white;
+      background-color: #111;
+      font-size: 28px;
+      font-weight: bold;
+      border-bottom: 1px solid #444;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
-    nav {
-      text-align: center;
-      margin: 10px 0;
+
+    #navToggle {
+      cursor: pointer;
+      font-size: 28px;
+      margin-left: 12px;
     }
-    nav a {
-      color: white;
-      margin: 0 10px;
-      text-decoration: none;
-    }
-    #echoList {
-      padding: 20px;
-    }
-    .echo {
-      border: 1px solid white;
-      padding: 10px;
-      margin-bottom: 10px;
-    }
-    .echo h3 {
-      margin: 0 0 5px 0;
-    }
-    .modal {
+
+    #navMenu {
       display: none;
-      position: fixed;
-      z-index: 1;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.8);
-    }
-    .modal-content {
-      background-color: #222;
-      margin: 15% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 90%;
-      max-width: 400px;
+      margin-top: 10px;
+      font-family: monospace;
       color: white;
+      text-align: center;
     }
-    textarea, input {
-      width: 100%;
-      margin-bottom: 10px;
-      background-color: black;
-      color: white;
-      border: 1px solid white;
-      padding: 5px;
-    }
-    button {
-      background-color: black;
-      color: white;
-      border: 1px solid white;
-      padding: 5px 10px;
-      margin: 5px 2px;
+
+    #navMenu div {
+      margin: 4px 0;
       cursor: pointer;
     }
-    img, video, audio {
-      max-width: 100%;
-      margin-top: 5px;
+
+    #navMenu div:hover {
+      text-decoration: underline;
+    }
+
+    #subtitle {
+      text-align: center;
+      font-size: 20px;
+      margin-top: 10px;
+      color: #aaa;
+    }
+
+    #newThread {
+      display: flex;
+      justify-content: center;
+      padding: 10px;
+      background-color: #111;
+      border-bottom: 1px solid #333;
+    }
+
+    #threadInput {
+      width: 60%;
+      padding: 10px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background-color: #111;
+      color: white;
+      margin-right: 10px;
+    }
+
+    #postThread {
+      padding: 10px 20px;
+      border: none;
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    #postThread:hover {
+      background-color: #555;
+    }
+
+    #threads {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .thread {
+      background-color: #222;
+      padding: 10px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .thread.expanded {
+      cursor: default;
+    }
+
+    .thread-content, .replyInputArea {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .thread.expanded .thread-content,
+    .thread.expanded .replyInputArea {
+      display: block;
+    }
+
+    .countdown, .thread-username {
+      font-size: 12px;
+      color: #aaa;
+      margin-left: 10px;
+    }
+
+    .reply {
+      padding: 6px 10px;
+      background-color: #333;
+      margin-top: 6px;
+      border-radius: 4px;
+    }
+
+    /* Modal styling */
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background-color: #111;
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 600px;
+      box-shadow: 0 0 20px #000;
+    }
+
+    textarea, input {
+      width: 100%;
+      padding: 10px;
+      background: #000;
+      color: white;
+      border: 1px solid #333;
+      margin-top: 10px;
+    }
+
+    button {
+      background: #333;
+      color: white;
+      border: none;
+      padding: 10px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #555;
+    }
+
+    .reply-meta {
+      font-size: 12px;
+      color: #888;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>The Void - Echoes</h1>
+    ECHOES <span id="navToggle">≡</span>
   </header>
-  <nav>
-    <a href="index.html">Home</a>
-    <a href="view-profiles.html">View Profiles</a>
-    <a href="global-chat.html">Global Chat</a>
-    <a href="echoes.html">Echoes</a>
-    <a href="edit-profile.html">Edit Profile</a>
-    <a href="login.html">Login</a>
-    <a href="signup.html">Signup</a>
-  </nav>
-  <div style="text-align:center;">
-    <button onclick="startEcho()">Create Echo</button>
+  <div id="navMenu">
+    <div onclick="location.href='index.html'">Home</div>
+    <div onclick="location.href='view-profiles.html'">View Profiles</div>
+    <div onclick="location.href='chat.html'">Global Chat</div>
+    <div onclick="location.href='edit-profile.html'">Edit Profile</div>
+    <div onclick="location.href='login.html'">Login</div>
+    <div onclick="location.href='signup.html'">Sign Up</div>
   </div>
-  <div id="echoList"></div>
+
+  <div id="subtitle">Start a discussion that echoes through the void.</div>
+
+  <div id="newThread">
+    <input id="threadInput" type="text" placeholder="Thread title..." />
+    <button id="postThread">Echo</button>
+  </div>
+
+  <div id="threads"></div>
 
   <!-- Echo Modal -->
   <div class="modal" id="echoModal">
@@ -104,31 +207,28 @@
       <div id="modalTitle"></div>
       <input id="echoUsername" placeholder="Enter username (or leave blank for Anonymous)" />
       <textarea id="echoBody" placeholder="Write your echo..."></textarea>
-      <input type="file" id="mediaUpload" accept="image/*,video/*,audio/*" style="display:none" />
-      <button id="mediaUploadBtn">Attach Media</button>
       <button id="submitEcho">Post Echo</button>
       <button onclick="echoModal.style.display='none'">Cancel</button>
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import {
-      getDatabase,
-      ref,
-      push,
-      onChildAdded,
-      remove
-    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-    import {
-      getStorage,
-      ref as storageRef,
-      uploadBytes,
-      getDownloadURL
-    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-storage.js";
+  <!-- Reply Modal -->
+  <div class="modal" id="replyModal">
+    <div class="modal-content">
+      <div id="replyModalTitle">Reply</div>
+      <input id="replyUsername" placeholder="Enter username (or leave blank for Anonymous)" />
+      <textarea id="replyBody" placeholder="Write your reply..."></textarea>
+      <button id="submitReply">Post Reply</button>
+      <button onclick="replyModal.style.display='none'">Cancel</button>
+    </div>
+  </div>
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyBPzkvlhxV0ymOZ67BlEVBgTkmkdE8R0kA",
+      apiKey: "AIzaSyBP8eY_0FYMqZnbGlXRcQ7fFuyLMIKe5hY",
       authDomain: "void-d9ec4.firebaseapp.com",
       databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
       projectId: "void-d9ec4",
@@ -137,119 +237,161 @@
       appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app);
-    const storage = getStorage(app);
-    const echoesRef = ref(database, "echoes");
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const threadInput = document.getElementById("threadInput");
+    const postThread = document.getElementById("postThread");
+    const threadsContainer = document.getElementById("threads");
 
     const echoModal = document.getElementById("echoModal");
-    const modalTitle = document.getElementById("modalTitle");
     const echoBody = document.getElementById("echoBody");
     const echoUsername = document.getElementById("echoUsername");
-    const mediaUploadInput = document.getElementById("mediaUpload");
-    let selectedFile = null;
+    const modalTitle = document.getElementById("modalTitle");
+    const submitEcho = document.getElementById("submitEcho");
 
-    document.getElementById("mediaUploadBtn").onclick = () => {
-      mediaUploadInput.click();
-    };
+    const replyModal = document.getElementById("replyModal");
+    const replyBody = document.getElementById("replyBody");
+    const replyUsername = document.getElementById("replyUsername");
+    const submitReply = document.getElementById("submitReply");
+    let replyToThreadId = null;
 
-    mediaUploadInput.onchange = (e) => {
-      selectedFile = e.target.files[0];
-    };
-
-    function startEcho() {
-      echoUsername.value = "";
+    postThread.onclick = () => {
+      const title = threadInput.value.trim();
+      if (!title) return;
+      modalTitle.textContent = `Echo: "${title}"`;
       echoBody.value = "";
-      selectedFile = null;
-      modalTitle.innerHTML = `<h3>New Echo</h3>`;
-      echoModal.style.display = "block";
-    }
+      echoUsername.value = "";
+      echoModal.style.display = "flex";
+    };
 
-    document.getElementById("submitEcho").onclick = async () => {
+    submitEcho.onclick = () => {
+      const content = echoBody.value.trim();
       const username = echoUsername.value.trim() || "Anonymous";
-      const body = echoBody.value.trim();
-      if (!body) return;
-
-      let mediaURL = "";
-      let mediaType = "";
-
-      if (selectedFile) {
-        const filePath = `media/${Date.now()}_${selectedFile.name}`;
-        const fileRef = storageRef(storage, filePath);
-        await uploadBytes(fileRef, selectedFile);
-        mediaURL = await getDownloadURL(fileRef);
-        mediaType = selectedFile.type.split("/")[0]; // image, video, audio
-      }
+      const title = threadInput.value.trim();
+      if (!content || !title) return;
 
       const now = Date.now();
-      const echoData = {
-        username,
-        body,
+      const thread = {
+        title,
+        content,
         timestamp: now,
-        expiresAt: now + 10 * 60 * 1000, // 10 minutes
-        mediaURL,
-        mediaType
+        username,
+        replies: {}
       };
 
-      await push(echoesRef, echoData);
+      db.ref("echoes").push(thread);
       echoModal.style.display = "none";
+      threadInput.value = "";
     };
 
-    onChildAdded(echoesRef, (data) => {
-      const echo = data.val();
-      const key = data.key;
-      const now = Date.now();
-      if (echo.expiresAt <= now) {
-        remove(ref(database, `echoes/${key}`));
-        return;
-      }
+    function renderThreads(snapshot) {
+      threadsContainer.innerHTML = "";
+      const threads = snapshot.val();
+      if (!threads) return;
 
-      const div = document.createElement("div");
-      div.className = "echo";
+      const entries = Object.entries(threads).sort((a, b) => b[1].timestamp - a[1].timestamp);
 
-      const countdownSpan = document.createElement("span");
-      countdownSpan.style.fontSize = "12px";
-      updateCountdown();
-
-      function updateCountdown() {
-        const remaining = Math.max(0, echo.expiresAt - Date.now());
-        const minutes = Math.floor(remaining / 60000);
-        const seconds = Math.floor((remaining % 60000) / 1000);
-        countdownSpan.textContent = `Time left: ${minutes}m ${seconds}s`;
-        if (remaining <= 0) {
-          div.remove();
-          remove(ref(database, `echoes/${key}`));
+      entries.forEach(([id, thread]) => {
+        const timeLeft = 10 * 60 * 1000 - (Date.now() - thread.timestamp);
+        if (timeLeft <= 0) {
+          db.ref("echoes/" + id).remove();
+          return;
         }
-      }
 
-      setInterval(updateCountdown, 1000);
+        const threadDiv = document.createElement("div");
+        threadDiv.className = "thread";
+        threadDiv.onclick = () => {
+          threadDiv.classList.toggle("expanded");
+        };
 
-      div.innerHTML = `
-        <h3>${echo.username}</h3>
-        <p>${echo.body}</p>
-      `;
-      div.appendChild(countdownSpan);
+        const header = document.createElement("div");
+        header.innerHTML = `<strong>${thread.title}</strong>
+          <span class="countdown" id="timer-${id}"></span>
+          <span class="thread-username">${thread.username || "Anonymous"}</span>`;
+        threadDiv.appendChild(header);
 
-      if (echo.mediaURL && echo.mediaType) {
-        if (echo.mediaType === "image") {
-          const img = document.createElement("img");
-          img.src = echo.mediaURL;
-          div.appendChild(img);
-        } else if (echo.mediaType === "video") {
-          const video = document.createElement("video");
-          video.src = echo.mediaURL;
-          video.controls = true;
-          div.appendChild(video);
-        } else if (echo.mediaType === "audio") {
-          const audio = document.createElement("audio");
-          audio.src = echo.mediaURL;
-          audio.controls = true;
-          div.appendChild(audio);
+        const contentDiv = document.createElement("div");
+        contentDiv.className = "thread-content";
+        contentDiv.textContent = thread.content;
+        threadDiv.appendChild(contentDiv);
+
+        const repliesDiv = document.createElement("div");
+        repliesDiv.id = `replies-${id}`;
+        repliesDiv.className = "thread-content";
+        if (thread.replies) {
+          Object.values(thread.replies).forEach(r => {
+            const reply = document.createElement("div");
+            reply.className = "reply";
+            reply.innerHTML = `<div>${r.text}</div><div class="reply-meta">${r.username || "Anonymous"}</div>`;
+            repliesDiv.appendChild(reply);
+          });
         }
-      }
+        threadDiv.appendChild(repliesDiv);
 
-      document.getElementById("echoList").prepend(div);
-    });
+        const replyButton = document.createElement("button");
+        replyButton.textContent = "Reply";
+        replyButton.onclick = (e) => {
+          e.stopPropagation();
+          replyModal.style.display = "flex";
+          replyToThreadId = id;
+        };
+
+        const replyArea = document.createElement("div");
+        replyArea.className = "replyInputArea thread-content";
+        replyArea.appendChild(replyButton);
+        threadDiv.appendChild(replyArea);
+
+        threadsContainer.appendChild(threadDiv);
+        startCountdown(`timer-${id}`, thread.timestamp, id);
+      });
+    }
+
+    submitReply.onclick = () => {
+      const text = replyBody.value.trim();
+      const username = replyUsername.value.trim() || "Anonymous";
+      if (!text || !replyToThreadId) return;
+
+      const reply = { text, username };
+      db.ref(`echoes/${replyToThreadId}/replies`).push(reply);
+
+      // bump echo timer by 5 min
+      db.ref(`echoes/${replyToThreadId}/timestamp`).once("value", snap => {
+        const current = snap.val();
+        db.ref(`echoes/${replyToThreadId}/timestamp`).set(current + 5 * 60 * 1000);
+      });
+
+      replyModal.style.display = "none";
+      replyBody.value = "";
+      replyUsername.value = "";
+    };
+
+    function startCountdown(elementId, startTime, threadId) {
+      const el = document.getElementById(elementId);
+      function update() {
+        const now = Date.now();
+        db.ref(`echoes/${threadId}/timestamp`).once("value", snap => {
+          const ts = snap.val();
+          const remaining = 10 * 60 * 1000 - (now - ts);
+          if (remaining <= 0) {
+            db.ref("echoes/" + threadId).remove();
+            return;
+          }
+          const minutes = Math.floor(remaining / 60000);
+          const seconds = Math.floor((remaining % 60000) / 1000);
+          el.textContent = `— ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+          requestAnimationFrame(update);
+        });
+      }
+      update();
+    }
+
+    db.ref("echoes").on("value", renderThreads);
+
+    document.getElementById("navToggle").onclick = () => {
+      const nav = document.getElementById("navMenu");
+      nav.style.display = nav.style.display === "block" ? "none" : "block";
+    };
   </script>
 </body>
 </html>

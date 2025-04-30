@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+CTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -15,6 +15,7 @@
       height: 100vh;
       overflow: hidden;
     }
+
     header {
       padding: 20px;
       text-align: center;
@@ -26,11 +27,13 @@
       justify-content: center;
       align-items: center;
     }
+
     #navToggle {
       cursor: pointer;
       font-size: 28px;
       margin-left: 12px;
     }
+
     #navMenu {
       display: none;
       margin-top: 10px;
@@ -38,19 +41,23 @@
       color: white;
       text-align: center;
     }
+
     #navMenu div {
       margin: 4px 0;
       cursor: pointer;
     }
+
     #navMenu div:hover {
       text-decoration: underline;
     }
+
     #subtitle {
       text-align: center;
       font-size: 20px;
       margin-top: 10px;
       color: #aaa;
     }
+
     #newThread {
       display: flex;
       justify-content: center;
@@ -58,15 +65,17 @@
       background-color: #111;
       border-bottom: 1px solid #333;
     }
-    #threadTitle, #threadContent {
-      width: 30%;
+
+    #threadInput {
+      width: 60%;
       padding: 10px;
-      margin: 0 5px;
       border: 1px solid #333;
       border-radius: 4px;
       background-color: #111;
       color: white;
+      margin-right: 10px;
     }
+
     #postThread {
       padding: 10px 20px;
       border: none;
@@ -75,20 +84,30 @@
       cursor: pointer;
       border-radius: 4px;
     }
+
     #postThread:hover {
       background-color: #555;
     }
+
     #threads {
       flex: 1;
       overflow-y: auto;
       padding: 20px;
     }
+
     .thread {
       background-color: #222;
       padding: 10px;
       margin-bottom: 12px;
       border-radius: 6px;
     }
+
+    .countdown {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 5px;
+    }
+
     .replyInput {
       width: 100%;
       margin-top: 8px;
@@ -97,6 +116,7 @@
       border: 1px solid #333;
       color: white;
     }
+
     .replyButton {
       margin-top: 4px;
       padding: 6px 10px;
@@ -105,9 +125,11 @@
       border: none;
       cursor: pointer;
     }
+
     .replyButton:hover {
       background-color: #555;
     }
+
     .reply {
       padding: 6px 10px;
       background-color: #333;
@@ -117,14 +139,15 @@
   </style>
 
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
 </head>
 <body>
+
   <header>
     VOID — Echoes
     <span id="navToggle" onclick="toggleNav()">≡</span>
   </header>
+
   <div id="navMenu">
     <div onclick="location.href='index.html'">Enter the Abyss</div>
     <div onclick="location.href='echoes.html'">Echoes</div>
@@ -132,105 +155,110 @@
     <div onclick="alert('Coming soon')">Dark Messenger</div>
     <div onclick="alert('Coming soon')">System Core</div>
   </div>
-  <div id="subtitle">Start a thread that echoes through the Void...</div>
+
+  <div id="subtitle">Start a thread that echoes for 1 hour...</div>
+
   <div id="newThread">
-    <input id="threadTitle" placeholder="Echo title..." />
-    <input id="threadContent" placeholder="Write your echo..." />
+    <input id="threadInput" placeholder="What's your thought..." />
     <button id="postThread">Echo</button>
   </div>
+
   <div id="threads"></div>
+
   <script>
-  // Firebase configuration (your real app ID from locked mode)
-  const firebaseConfig = {
-    apiKey: "AIzaSyDbvbfWvWkIOQdGOmMVn13_Aml5O9EDEiw",
-    authDomain: "void-d9ec4.firebaseapp.com",
-    databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
-    projectId: "void-d9ec4",
-    storageBucket: "void-d9ec4.appspot.com",
-    messagingSenderId: "267268035851",
-    appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
-  };
-
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-
-  // Anonymous auth (so visitors can write/read)
-  firebase.auth().signInAnonymously().catch(console.error);
-
-  // Toggle nav
-  function toggleNav() {
-    const menu = document.getElementById('navMenu');
-    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-  }
-
-  // Post a new echo/thread
-  document.getElementById('postThread').addEventListener('click', () => {
-    const title = document.getElementById('threadTitle').value.trim();
-    const content = document.getElementById('threadContent').value.trim();
-    if (title && content) {
-      const newEcho = {
-        title,
-        content,
-        timestamp: Date.now()
-      };
-      const key = db.ref("echoes").push().key;
-      db.ref("echoes/" + key).set(newEcho);
-      document.getElementById('threadTitle').value = "";
-      document.getElementById('threadContent').value = "";
+    function toggleNav() {
+      const menu = document.getElementById("navMenu");
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
     }
-  });
 
-  // Render all echoes and their replies
-  db.ref("echoes").on("value", (snapshot) => {
-    const threadsContainer = document.getElementById('threads');
-    threadsContainer.innerHTML = "";
-    const echoes = snapshot.val();
-    if (!echoes) return;
-    Object.entries(echoes).reverse().forEach(([key, echo]) => {
-      const div = document.createElement('div');
-      div.className = 'thread';
-      div.innerHTML = `
-        <strong>${echo.title}</strong><br>${echo.content}
-        <div id="replies-${key}"></div>
-        <input class="replyInput" placeholder="Write a reply..." id="replyInput-${key}" />
-        <button class="replyButton" onclick="postReply('${key}')">Reply</button>
-      `;
-      threadsContainer.appendChild(div);
-      loadReplies(key);
-    });
-  });
+    const firebaseConfig = {
+      apiKey: "AIzaSyClW4zHDde1rQm6RkHQcD2rM0sklBBgdrM",
+      authDomain: "void-d9ec4.firebaseapp.com",
+      databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
+      projectId: "void-d9ec4",
+      storageBucket: "void-d9ec4.appspot.com",
+      messagingSenderId: "267268035851",
+      appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-  // Post a reply to a specific thread
-  function postReply(echoKey) {
-    const input = document.getElementById('replyInput-' + echoKey);
-    const replyText = input.value.trim();
-    if (replyText) {
-      const reply = {
-        text: replyText,
-        timestamp: Date.now()
-      };
-      db.ref("echoes/" + echoKey + "/replies").push(reply);
-      input.value = "";
-    }
-  }
+    const threadsDiv = document.getElementById("threads");
+    const threadInput = document.getElementById("threadInput");
+    const postButton = document.getElementById("postThread");
 
-  // Load replies under each thread
-  function loadReplies(echoKey) {
-    db.ref("echoes/" + echoKey + "/replies").on("value", (snapshot) => {
-      const replyDiv = document.getElementById('replies-' + echoKey);
-      replyDiv.innerHTML = "";
-      const replies = snapshot.val();
-      if (!replies) return;
-      Object.values(replies).forEach(reply => {
-        const p = document.createElement('div');
-        p.className = "reply";
-        p.textContent = reply.text;
-        replyDiv.appendChild(p);
+    postButton.onclick = () => {
+      const text = threadInput.value.trim();
+      if (text !== "") {
+        const timestamp = Date.now();
+        const threadRef = db.ref("echoes").push();
+        threadRef.set({
+          text,
+          timestamp,
+          replies: []
+        });
+        threadInput.value = "";
+      }
+    };
+
+    function renderThreads(snapshot) {
+      threadsDiv.innerHTML = "";
+      const now = Date.now();
+
+      snapshot.forEach(child => {
+        const key = child.key;
+        const data = child.val();
+        const expiresAt = data.timestamp + 60 * 60 * 1000; // 1 hour
+        const secondsLeft = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+
+        if (secondsLeft <= 0) {
+          db.ref("echoes").child(key).remove();
+          return;
+        }
+
+        const threadEl = document.createElement("div");
+        threadEl.className = "thread";
+
+        threadEl.innerHTML = `
+          <div>${data.text}</div>
+          <div class="countdown" id="cd-${key}">${secondsLeft}s left</div>
+          <div class="replies">${(data.replies || []).map(reply => `<div class="reply">${reply}</div>`).join("")}</div>
+          <input class="replyInput" id="input-${key}" placeholder="Reply..."/>
+          <button class="replyButton" onclick="replyTo('${key}')">Reply</button>
+        `;
+
+        threadsDiv.appendChild(threadEl);
+
+        // Countdown updates
+        setInterval(() => {
+          const newSeconds = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+          const cdEl = document.getElementById("cd-" + key);
+          if (cdEl) cdEl.textContent = `${newSeconds}s left`;
+        }, 1000);
+
+        // Auto-remove after expiration
+        setTimeout(() => {
+          db.ref("echoes").child(key).remove();
+        }, expiresAt - now);
       });
-    });
-  }
-</script>
+    }
+
+    function replyTo(key) {
+      const input = document.getElementById("input-" + key);
+      const reply = input.value.trim();
+      if (reply) {
+        const threadRef = db.ref("echoes").child(key).child("replies");
+        threadRef.once("value", snap => {
+          const replies = snap.val() || [];
+          replies.push(reply);
+          threadRef.set(replies);
+        });
+        input.value = "";
+      }
+    }
+
+    db.ref("echoes").on("value", renderThreads);
+  </script>
+
 </body>
 </html>
-

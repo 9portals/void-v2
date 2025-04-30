@@ -1,131 +1,92 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Account | VOID</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Void Global Chat - Accounts</title>
   <style>
+    /* Basic styling for forms and containers */
     body {
+      margin: 0;
+      font-family: Arial, sans-serif;
       background-color: black;
       color: white;
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
     }
-    .nav-button {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      width: 50px;
-      height: 50px;
-      background: white;
-      border-radius: 50%;
-      cursor: pointer;
-      z-index: 1000;
-    }
-    .nav-menu {
-      display: none;
-      position: fixed;
-      top: 80px;
-      left: 20px;
-      background: #111;
-      padding: 10px;
-      border: 1px solid white;
-      z-index: 1000;
-    }
-    .nav-menu a {
-      display: block;
-      color: white;
-      text-decoration: none;
-      margin: 5px 0;
-    }
-    header {
-      font-size: 24px;
+    .form-container {
+      background-color: #111;
       padding: 20px;
-      margin-top: 20px;
-    }
-    .container {
-      max-width: 400px;
-      margin: 80px auto;
-      padding: 20px;
-      background: #111;
-      border: 1px solid white;
       border-radius: 8px;
+      margin: 10px;
+      width: 300px;
     }
-    input, textarea {
+    input {
       width: 100%;
-      margin: 8px 0;
       padding: 10px;
-      border-radius: 4px;
+      margin: 5px 0;
       border: none;
+      border-radius: 4px;
     }
     button {
+      width: 100%;
       padding: 10px;
-      background: white;
-      color: black;
+      margin-top: 10px;
+      background-color: #333;
+      color: white;
       border: none;
-      cursor: pointer;
       border-radius: 4px;
-      margin-top: 10px;
+      cursor: pointer;
     }
-    .hidden {
+    button:hover {
+      background-color: #555;
+    }
+    #profile-section {
       display: none;
+      text-align: center;
     }
-    #profile-picture-preview {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin-top: 10px;
+    #logout-button {
+      margin-top: 20px;
+      background-color: #444;
     }
   </style>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
-  <!-- Folding Nav Button -->
-  <div id="nav-button" class="nav-button"></div>
-  <div id="nav-menu" class="nav-menu">
-    <a href="index.html">Home</a>
-    <a href="echoes.html">Echoes</a>
-    <a href="accounts.html">Account</a>
-  </div>
-
-  <header><strong>VOID</strong> | Accounts</header>
-
-  <div class="container" id="auth-container">
-    <h3>Register</h3>
-    <input type="email" id="reg-email" placeholder="Email">
-    <input type="password" id="reg-password" placeholder="Password (min 8 chars)">
-    <input type="text" id="reg-username" placeholder="Username (min 6 chars)">
-    <button onclick="register()">Sign Up</button>
-
-    <h3>Login</h3>
-    <input type="email" id="login-email" placeholder="Email">
-    <input type="password" id="login-password" placeholder="Password">
+  <!-- Login Form -->
+  <div class="form-container" id="login-form">
+    <h2>Login</h2>
+    <input type="email" id="login-email" placeholder="Email" required />
+    <input type="password" id="login-password" placeholder="Password" required />
     <button onclick="login()">Login</button>
+    <p>Don't have an account? <a href="#" onclick="toggleForms()">Register here</a></p>
   </div>
 
-  <div class="container hidden" id="profile-container">
-    <h3>Your Profile</h3>
-    <p id="display-email"></p>
-    <p><strong>Username:</strong> <span id="display-username"></span></p>
-    <p><strong>Name:</strong> <input id="edit-name"></p>
-    <p><strong>Age:</strong> <input id="edit-age" type="number"></p>
-    <p><strong>Gender:</strong> <input id="edit-gender"></p>
-    <p><strong>Bio:</strong> <textarea id="edit-bio" rows="4"></textarea></p>
-    <p><strong>Profile Picture URL:</strong> <input id="edit-pfp"></p>
-    <img id="profile-picture-preview" class="hidden">
-    <br>
-    <button onclick="saveProfile()">Save Profile</button>
-    <button onclick="logout()">Logout</button>
+  <!-- Registration Form -->
+  <div class="form-container" id="register-form" style="display: none;">
+    <h2>Register</h2>
+    <input type="email" id="register-email" placeholder="Email" required />
+    <input type="password" id="register-password" placeholder="Password" required />
+    <button onclick="register()">Register</button>
+    <p>Already have an account? <a href="#" onclick="toggleForms()">Login here</a></p>
+  </div>
+
+  <!-- Profile Section -->
+  <div id="profile-section">
+    <h2>Welcome, <span id="user-email"></span></h2>
+    <button id="logout-button" onclick="logout()">Logout</button>
   </div>
 
   <script>
+    // Your Firebase configuration
     const firebaseConfig = {
-      apiKey: "AIzaSyCQZtpI7kWmn5q9vU_2GH40UduJZDRiKrI",
+      apiKey: "AIzaSyClW4zHDde1rQm6RkHQcD2rM0sklBBgdrM",
       authDomain: "void-d9ec4.firebaseapp.com",
       databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
       projectId: "void-d9ec4",
@@ -133,114 +94,72 @@
       messagingSenderId: "267268035851",
       appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
     };
+
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const db = firebase.database();
 
-    const navBtn = document.getElementById("nav-button");
-    const navMenu = document.getElementById("nav-menu");
-    let navOpen = false;
-    navBtn.addEventListener("click", () => {
-      navOpen = !navOpen;
-      navMenu.style.display = navOpen ? "block" : "none";
-    });
-
-    function register() {
-      const email = document.getElementById("reg-email").value;
-      const password = document.getElementById("reg-password").value;
-      const username = document.getElementById("reg-username").value;
-      if (username.length < 6 || password.length < 8) {
-        alert("Username must be at least 6 chars. Password must be at least 8 chars.");
-        return;
-      }
-
-      auth.createUserWithEmailAndPassword(email, password).then(cred => {
-        const uid = cred.user.uid;
-        return db.ref("users/" + uid).set({
-          email,
-          username,
-          name: "",
-          age: "",
-          gender: "",
-          bio: "",
-          profilePicture: "",
-          followers: [],
-          following: [],
-          lastOnline: Date.now()
-        });
-      }).then(() => {
-        alert("Registered and logged in!");
-        showProfileUI();
-      }).catch(err => {
-        alert(err.message);
-      });
+    // Toggle between login and register forms
+    function toggleForms() {
+      const loginForm = document.getElementById('login-form');
+      const registerForm = document.getElementById('register-form');
+      loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
+      registerForm.style.display = registerForm.style.display === 'none' ? 'block' : 'none';
     }
 
+    // Login function
     function login() {
-      const email = document.getElementById("login-email").value;
-      const password = document.getElementById("login-password").value;
-      auth.signInWithEmailAndPassword(email, password).then(() => {
-        alert("Logged in!");
-        showProfileUI();
-      }).catch(err => {
-        alert(err.message);
-      });
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          // Signed in
+          showProfile(userCredential.user);
+        })
+        .catch((error) => {
+          alert(error.message);
+        });
     }
 
+    // Register function
+    function register() {
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          // Registered
+          showProfile(userCredential.user);
+        })
+        .catch((error) => {
+          alert(error.message);
+        });
+    }
+
+    // Show profile section
+    function showProfile(user) {
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('register-form').style.display = 'none';
+      document.getElementById('profile-section').style.display = 'block';
+      document.getElementById('user-email').textContent = user.email;
+    }
+
+    // Logout function
     function logout() {
       auth.signOut().then(() => {
-        document.getElementById("auth-container").classList.remove("hidden");
-        document.getElementById("profile-container").classList.add("hidden");
+        document.getElementById('profile-section').style.display = 'none';
+        document.getElementById('login-form').style.display = 'block';
+      }).catch((error) => {
+        alert(error.message);
       });
     }
 
-    function saveProfile() {
-      const user = auth.currentUser;
-      if (!user) return;
-      const uid = user.uid;
-      const updates = {
-        name: document.getElementById("edit-name").value,
-        age: document.getElementById("edit-age").value,
-        gender: document.getElementById("edit-gender").value,
-        bio: document.getElementById("edit-bio").value,
-        profilePicture: document.getElementById("edit-pfp").value,
-        lastOnline: Date.now()
-      };
-      db.ref("users/" + uid).update(updates).then(() => {
-        alert("Profile updated!");
-        updateProfileUI(uid);
-      });
-    }
-
-    function showProfileUI() {
-      const user = auth.currentUser;
-      if (!user) return;
-      const uid = user.uid;
-      document.getElementById("auth-container").classList.add("hidden");
-      document.getElementById("profile-container").classList.remove("hidden");
-      updateProfileUI(uid);
-    }
-
-    function updateProfileUI(uid) {
-      db.ref("users/" + uid).once("value").then(snapshot => {
-        const data = snapshot.val();
-        document.getElementById("display-email").innerText = "Email: " + data.email;
-        document.getElementById("display-username").innerText = data.username || "";
-        document.getElementById("edit-name").value = data.name || "";
-        document.getElementById("edit-age").value = data.age || "";
-        document.getElementById("edit-gender").value = data.gender || "";
-        document.getElementById("edit-bio").value = data.bio || "";
-        document.getElementById("edit-pfp").value = data.profilePicture || "";
-        if (data.profilePicture) {
-          const preview = document.getElementById("profile-picture-preview");
-          preview.src = data.profilePicture;
-          preview.classList.remove("hidden");
-        }
-      });
-    }
-
-    auth.onAuthStateChanged(user => {
-      if (user) showProfileUI();
+    // Check auth state on page load
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        showProfile(user);
+      }
     });
   </script>
 </body>

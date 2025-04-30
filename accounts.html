@@ -132,119 +132,122 @@
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-storage-compat.js"></script>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
-      authDomain: "void-d9ec4.firebaseapp.com",
-      databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
-      projectId: "void-d9ec4",
-      storageBucket: "void-d9ec4.appspot.com",
-      messagingSenderId: "267268035851",
-      appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-    const storage = firebase.storage();
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
+    authDomain: "void-d9ec4.firebaseapp.com",
+    databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
+    projectId: "void-d9ec4",
+    storageBucket: "void-d9ec4.appspot.com",
+    messagingSenderId: "267268035851",
+    appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+  const storage = firebase.storage();
 
-    function toggleForm(isLogin) {
-      document.getElementById("loginForm").classList.toggle("hidden", !isLogin);
-      document.getElementById("signupForm").classList.toggle("hidden", isLogin);
-    }
+  function toggleForm(isLogin) {
+    document.getElementById("loginForm").classList.toggle("hidden", !isLogin);
+    document.getElementById("signupForm").classList.toggle("hidden", isLogin);
+  }
 
-    function signup() {
-      const email = document.getElementById("signupEmail").value;
-      const password = document.getElementById("signupPassword").value;
-      const username = document.getElementById("signupUsername").value;
-      auth.createUserWithEmailAndPassword(email, password).then(userCred => {
-        const uid = userCred.user.uid;
-        return db.ref("users/" + uid).set({
-          email,
-          username,
-          name: "",
-          age: "",
-          gender: "",
-          bio: "",
-          picURL: "",
-          verified: false
-        }).then(() => {
-          userCred.user.sendEmailVerification();
-          showProfile(uid);
-        });
-      }).catch(console.error);
-    }
-
-    function login() {
-      const email = document.getElementById("loginEmail").value;
-      const password = document.getElementById("loginPassword").value;
-      auth.signInWithEmailAndPassword(email, password).then(userCred => {
-        showProfile(userCred.user.uid);
-      }).catch(console.error);
-    }
-
-    function showProfile(uid) {
-      document.getElementById("loginForm").classList.add("hidden");
-      document.getElementById("signupForm").classList.add("hidden");
-
-      db.ref("users/" + uid).once("value").then(snapshot => {
-        const data = snapshot.val();
-        const user = auth.currentUser;
-        document.getElementById("statusTag").innerText = "Status: " + (user.emailVerified ? "Verified" : "Unverified");
-        document.getElementById("displayName").innerText = data.name || "—";
-        document.getElementById("displayAge").innerText = data.age || "—";
-        document.getElementById("displayGender").innerText = data.gender || "—";
-        document.getElementById("displayBio").innerText = data.bio || "—";
-        document.getElementById("profilePic").src = data.picURL || "https://via.placeholder.com/120";
-        document.getElementById("fullPic").src = data.picURL || "";
-        document.getElementById("profileView").classList.remove("hidden");
+  function signup() {
+    const email = document.getElementById("signupEmail").value;
+    const password = document.getElementById("signupPassword").value;
+    const username = document.getElementById("signupUsername").value;
+    auth.createUserWithEmailAndPassword(email, password).then(userCred => {
+      const uid = userCred.user.uid;
+      return db.ref("users/" + uid).set({
+        email,
+        username,
+        name: "",
+        age: "",
+        gender: "",
+        bio: "",
+        picURL: "",
+        verified: false
+      }).then(() => {
+        userCred.user.sendEmailVerification();
+        showProfile(uid);
       });
-    }
+    }).catch(console.error);
+  }
 
-    function showEditProfile() {
-      document.getElementById("profileView").classList.add("hidden");
-      document.getElementById("editProfile").classList.remove("hidden");
-    }
+  function login() {
+    const email = document.getElementById("loginEmail").value;
+    const password = document.getElementById("loginPassword").value;
+    auth.signInWithEmailAndPassword(email, password).then(userCred => {
+      showProfile(userCred.user.uid);
+    }).catch(console.error);
+  }
 
-    function cancelEdit() {
-      document.getElementById("editProfile").classList.add("hidden");
+  function showProfile(uid) {
+    document.getElementById("loginForm").classList.add("hidden");
+    document.getElementById("signupForm").classList.add("hidden");
+
+    db.ref("users/" + uid).once("value").then(snapshot => {
+      const data = snapshot.val();
+      const user = auth.currentUser;
+      const verified = user.emailVerified;
+
+      document.getElementById("statusTag").innerText = verified
+        ? "Status: Verified (Full Access)"
+        : "Status: Verify your email for full access";
+
+      document.getElementById("displayName").innerText = data.name || "—";
+      document.getElementById("displayAge").innerText = data.age || "—";
+      document.getElementById("displayGender").innerText = data.gender || "—";
+      document.getElementById("displayBio").innerText = data.bio || "—";
+      document.getElementById("profilePic").src = data.picURL || "https://via.placeholder.com/120";
+      document.getElementById("fullPic").src = data.picURL || "";
+
       document.getElementById("profileView").classList.remove("hidden");
-    }
+    });
+  }
 
-    function saveProfile() {
-      const name = document.getElementById("name").value;
-      const age = document.getElementById("age").value;
-      const gender = document.getElementById("gender").value;
-      const bio = document.getElementById("bio").value;
-      const uid = auth.currentUser.uid;
-      const file = document.getElementById("picUpload").files[0];
+  function showEditProfile() {
+    document.getElementById("profileView").classList.add("hidden");
+    document.getElementById("editProfile").classList.remove("hidden");
+  }
 
-      if (file) {
-        const ref = storage.ref("profilePics/" + uid);
-        ref.put(file).then(snapshot => {
-          return snapshot.ref.getDownloadURL().then(url => {
-            db.ref("users/" + uid).update({ name, age, gender, bio, picURL: url });
+  function cancelEdit() {
+    document.getElementById("editProfile").classList.add("hidden");
+    document.getElementById("profileView").classList.remove("hidden");
+  }
+
+  function saveProfile() {
+    const name = document.getElementById("name").value;
+    const age = document.getElementById("age").value;
+    const gender = document.getElementById("gender").value;
+    const bio = document.getElementById("bio").value;
+    const uid = auth.currentUser.uid;
+    const file = document.getElementById("picUpload").files[0];
+
+    if (file) {
+      const ref = storage.ref("profilePics/" + uid);
+      ref.put(file).then(snapshot => {
+        snapshot.ref.getDownloadURL().then(url => {
+          db.ref("users/" + uid).update({ name, age, gender, bio, picURL: url }).then(() => {
             showProfile(uid);
             document.getElementById("editProfile").classList.add("hidden");
           });
         });
-      } else {
-        db.ref("users/" + uid).update({ name, age, gender, bio }).then(() => {
-          showProfile(uid);
-          document.getElementById("editProfile").classList.add("hidden");
-        });
-      }
+      }).catch(console.error);
+    } else {
+      db.ref("users/" + uid).update({ name, age, gender, bio }).then(() => {
+        showProfile(uid);
+        document.getElementById("editProfile").classList.add("hidden");
+      });
     }
+  }
 
-    function toggleFullPic() {
-      const full = document.getElementById("fullPic");
-      full.style.display = full.style.display === "none" ? "block" : "none";
-    }
+  function toggleFullPic() {
+    const full = document.getElementById("fullPic");
+    full.style.display = full.style.display === "none" ? "block" : "none";
+  }
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        showProfile(user.uid);
-      }
-    });
-  </script>
-</body>
-</html>
+  auth.onAuthStateChanged(user => {
+    if (user) showProfile(user.uid);
+  });
+</script>

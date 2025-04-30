@@ -100,12 +100,43 @@
       padding: 10px;
       margin-bottom: 12px;
       border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .thread-header {
+      font-weight: bold;
+    }
+
+    .thread-content {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .user-pic {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-right: 6px;
+      background-color: gray;
+      display: none;
+    }
+
+    .user-name {
+      font-size: 12px;
+      color: #bbb;
+      display: none;
     }
 
     .countdown {
       font-size: 12px;
       color: #aaa;
-      margin-top: 5px;
+      margin-top: 6px;
     }
 
     .replyInput {
@@ -137,7 +168,6 @@
       border-radius: 4px;
     }
 
-    /* Modal styling */
     .modal {
       position: fixed;
       top: 0; left: 0;
@@ -168,22 +198,27 @@
       margin-top: 10px;
     }
 
-    .modal-buttons {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 15px;
-    }
-
-    .modal-buttons button {
+    #submitEcho {
+      margin-top: 10px;
       background: #333;
-      color: white;
       border: none;
-      padding: 10px 20px;
+      color: white;
+      padding: 10px;
       cursor: pointer;
     }
 
-    .modal-buttons button:hover {
+    #submitEcho:hover {
       background: #555;
+    }
+
+    #cancelEcho {
+      margin-top: 10px;
+      background: #222;
+      border: none;
+      color: white;
+      padding: 10px;
+      cursor: pointer;
+      margin-left: 10px;
     }
   </style>
 </head>
@@ -192,6 +227,7 @@
     ECHOES
     <span id="navToggle">≡</span>
   </header>
+
   <div id="navMenu">
     <div onclick="location.href='index.html'">Home</div>
     <div onclick="location.href='view-profiles.html'">View Profiles</div>
@@ -200,6 +236,7 @@
     <div onclick="location.href='login.html'">Login</div>
     <div onclick="location.href='signup.html'">Sign Up</div>
   </div>
+
   <div id="subtitle">Start a discussion that echoes through the void.</div>
 
   <div id="newThread">
@@ -209,19 +246,17 @@
 
   <div id="threads"></div>
 
-  <!-- Modal -->
   <div class="modal" id="echoModal">
     <div class="modal-content">
-      <div id="modalTitle" style="font-weight: bold; margin-bottom: 10px;"></div>
+      <div id="modalTitle"></div>
       <textarea id="echoBody" placeholder="Write your echo..."></textarea>
-      <div class="modal-buttons">
+      <div style="display:flex; justify-content:flex-end;">
         <button id="cancelEcho">Cancel</button>
         <button id="submitEcho">Post Echo</button>
       </div>
     </div>
   </div>
 
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
@@ -242,7 +277,6 @@
     const threadInput = document.getElementById("threadInput");
     const postThread = document.getElementById("postThread");
     const threadsContainer = document.getElementById("threads");
-
     const echoModal = document.getElementById("echoModal");
     const echoBody = document.getElementById("echoBody");
     const modalTitle = document.getElementById("modalTitle");
@@ -262,21 +296,20 @@
 
     cancelEcho.onclick = () => {
       echoModal.style.display = "none";
-      echoBody.value = "";
     };
 
     submitEcho.onclick = () => {
       const content = echoBody.value.trim();
       if (!content) return;
-
       const now = Date.now();
       const thread = {
         title: currentTitle,
         content,
         timestamp: now,
-        replies: {}
+        replies: {},
+        username: "Anonymous",
+        profilePic: ""
       };
-
       db.ref("echoes").push(thread);
       echoModal.style.display = "none";
       threadInput.value = "";
@@ -298,19 +331,35 @@
 
         const threadDiv = document.createElement("div");
         threadDiv.className = "thread";
-        threadDiv.innerHTML = `
-          <div><strong>${thread.title}</strong></div>
+
+        const header = document.createElement("div");
+        header.className = "thread-header";
+        header.textContent = thread.title;
+        threadDiv.appendChild(header);
+
+        const contentDiv = document.createElement("div");
+        contentDiv.className = "thread-content";
+        contentDiv.innerHTML = `
           <div>${thread.content}</div>
+          <div class="user-info">
+            <div class="user-pic"></div>
+            <div class="user-name">${thread.username}</div>
+          </div>
           <div class="countdown" id="timer-${id}"></div>
           <div id="replies-${id}"></div>
           <input class="replyInput" id="replyInput-${id}" placeholder="Reply..." />
           <button class="replyButton" onclick="postReply('${id}')">Post</button>
         `;
+        threadDiv.appendChild(contentDiv);
+
+        header.onclick = () => {
+          contentDiv.style.display = contentDiv.style.display === "none" ? "block" : "none";
+        };
 
         threadsContainer.appendChild(threadDiv);
         startCountdown(`timer-${id}`, thread.timestamp, id);
 
-        const repliesDiv = document.getElementById(`replies-${id}`);
+        const repliesDiv = contentDiv.querySelector(`#replies-${id}`);
         if (thread.replies) {
           Object.values(thread.replies).forEach(reply => {
             const r = document.createElement("div");
@@ -326,8 +375,8 @@
       const input = document.getElementById(`replyInput-${threadId}`);
       const replyText = input.value.trim();
       if (!replyText) return;
-
       db.ref(`echoes/${threadId}/replies`).push(replyText);
+      db.ref(`echoes/${threadId}/timestamp`).set(Date.now()); // bump timer
       input.value = "";
     }
 

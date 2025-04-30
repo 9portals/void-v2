@@ -60,23 +60,24 @@
 
     #newThread {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
       padding: 10px;
       background-color: #111;
       border-bottom: 1px solid #333;
     }
 
-    #echoTitleInput {
+    #threadTitle, #threadContent {
       width: 60%;
       padding: 10px;
       border: 1px solid #333;
       border-radius: 4px;
       background-color: #111;
       color: white;
-      margin-right: 10px;
+      margin: 6px 0;
     }
 
-    #startEcho {
+    #postThread {
       padding: 10px 20px;
       border: none;
       background-color: #333;
@@ -85,39 +86,7 @@
       border-radius: 4px;
     }
 
-    #startEcho:hover {
-      background-color: #555;
-    }
-
-    #contentInputContainer {
-      display: none;
-      padding: 10px;
-      text-align: center;
-      background-color: #111;
-      border-bottom: 1px solid #333;
-    }
-
-    #echoContentInput {
-      width: 60%;
-      height: 80px;
-      padding: 10px;
-      background-color: #111;
-      color: white;
-      border: 1px solid #333;
-      border-radius: 4px;
-    }
-
-    #confirmEcho {
-      margin-top: 10px;
-      padding: 10px 20px;
-      background-color: #333;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    #confirmEcho:hover {
+    #postThread:hover {
       background-color: #555;
     }
 
@@ -191,14 +160,9 @@
   <div id="subtitle">Start a thread that echoes for 1 hour...</div>
 
   <div id="newThread">
-    <input id="echoTitleInput" placeholder="Echo title..." />
-    <button id="startEcho">Start Echo</button>
-  </div>
-
-  <div id="contentInputContainer">
-    <textarea id="echoContentInput" placeholder="Write your topic..."></textarea>
-    <br>
-    <button id="confirmEcho">Echo</button>
+    <input id="threadTitle" placeholder="Echo title..." />
+    <textarea id="threadContent" placeholder="Now write your Echo..." rows="3"></textarea>
+    <button id="postThread">Echo</button>
   </div>
 
   <div id="threads"></div>
@@ -222,42 +186,24 @@
   const db = firebase.database();
 
   const threadsDiv = document.getElementById("threads");
-  const echoTitleInput = document.getElementById("echoTitleInput");
-  const echoContentInput = document.getElementById("echoContentInput");
-  const contentInputContainer = document.getElementById("contentInputContainer");
-  const startEchoButton = document.getElementById("startEcho");
-  const confirmEchoButton = document.getElementById("confirmEcho");
+  const titleInput = document.getElementById("threadTitle");
+  const contentInput = document.getElementById("threadContent");
+  const postButton = document.getElementById("postThread");
 
-  let currentEchoTitle = "";
-
-  startEchoButton.onclick = () => {
-    const title = echoTitleInput.value.trim();
-    if (title) {
-      currentEchoTitle = title;
-      contentInputContainer.style.display = "block";
-      echoTitleInput.disabled = true;
-      startEchoButton.disabled = true;
-    }
-  };
-
-  confirmEchoButton.onclick = () => {
-    const content = echoContentInput.value.trim();
-    if (content && currentEchoTitle) {
+  postButton.onclick = () => {
+    const title = titleInput.value.trim();
+    const content = contentInput.value.trim();
+    if (title && content) {
       const timestamp = Date.now();
       const threadRef = db.ref("echoes").push();
       threadRef.set({
-        title: currentEchoTitle,
+        title,
         content,
         timestamp,
         replies: []
       });
-      // Reset
-      echoTitleInput.value = "";
-      echoContentInput.value = "";
-      contentInputContainer.style.display = "none";
-      echoTitleInput.disabled = false;
-      startEchoButton.disabled = false;
-      currentEchoTitle = "";
+      titleInput.value = "";
+      contentInput.value = "";
     }
   };
 
@@ -280,8 +226,8 @@
       threadEl.className = "thread";
 
       threadEl.innerHTML = `
-        <div style="font-weight: bold; font-size: 18px;">${data.title}</div>
-        <div style="margin-top: 4px;">${data.content}</div>
+        <div><strong>${data.title}</strong></div>
+        <div>${data.content}</div>
         <div class="countdown" id="cd-${key}">${secondsLeft}s left</div>
         <div class="replies">${(data.replies || []).map(reply => `<div class="reply">${reply}</div>`).join("")}</div>
         <input class="replyInput" id="input-${key}" placeholder="Reply..."/>
@@ -290,12 +236,14 @@
 
       threadsDiv.appendChild(threadEl);
 
+      // Countdown updates
       setInterval(() => {
         const newSeconds = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
         const cdEl = document.getElementById("cd-" + key);
         if (cdEl) cdEl.textContent = `${newSeconds}s left`;
       }, 1000);
 
+      // Auto-remove after expiration
       setTimeout(() => {
         db.ref("echoes").child(key).remove();
       }, expiresAt - now);
@@ -317,121 +265,7 @@
   }
 
   db.ref("echoes").on("value", renderThreads);
-    
-  function toggleNav() {
-    const menu = document.getElementById("navMenu");
-    menu.style.display = menu.style.display === "block" ? "none" : "block";
-  }
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyClW4zHDde1rQm6RkHQcD2rM0sklBBgdrM",
-    authDomain: "void-d9ec4.firebaseapp.com",
-    databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
-    projectId: "void-d9ec4",
-    storageBucket: "void-d9ec4.appspot.com",
-    messagingSenderId: "267268035851",
-    appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-
-  const threadsDiv = document.getElementById("threads");
-  const threadInput = document.getElementById("threadInput");
-  const postButton = document.getElementById("postThread");
-
-  let titleInProgress = "";
-  let isAwaitingContent = false;
-
-  postButton.onclick = () => {
-    const text = threadInput.value.trim();
-    if (!isAwaitingContent) {
-      if (text !== "") {
-        titleInProgress = text;
-        threadInput.value = "";
-        threadInput.placeholder = "Now write the actual echo topic...";
-        isAwaitingContent = true;
-      }
-    } else {
-      if (text !== "") {
-        const timestamp = Date.now();
-        const threadRef = db.ref("echoes").push();
-        threadRef.set({
-          title: titleInProgress,
-          content: text,
-          timestamp,
-          replies: []
-        });
-        threadInput.value = "";
-        threadInput.placeholder = "What's your thought...";
-        titleInProgress = "";
-        isAwaitingContent = false;
-      }
-    }
-  };
-
-  function renderThreads(snapshot) {
-    threadsDiv.innerHTML = "";
-    const now = Date.now();
-
-    snapshot.forEach(child => {
-      const key = child.key;
-      const data = child.val();
-      const expiresAt = data.timestamp + 60 * 60 * 1000;
-      const secondsLeft = Math.max(0, Math.ceil((expiresAt - now) / 1000));
-
-      if (secondsLeft <= 0) {
-        db.ref("echoes").child(key).remove();
-        return;
-      }
-
-      const threadEl = document.createElement("div");
-      threadEl.className = "thread";
-
-      threadEl.innerHTML = `
-        <div style="font-weight:bold; font-size:18px;">${data.title}</div>
-        <div style="margin-top:6px;">${data.content}</div>
-        <div class="countdown" id="cd-${key}">${secondsLeft}s left</div>
-        <div class="replies" id="replies-${key}">
-          ${(data.replies || []).map(reply => `<div class="reply">${reply}</div>`).join("")}
-        </div>
-        <input class="replyInput" id="input-${key}" placeholder="Reply..."/>
-        <button class="replyButton" onclick="replyTo('${key}')">Reply</button>
-      `;
-
-      threadsDiv.appendChild(threadEl);
-
-      const interval = setInterval(() => {
-        const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
-        const cdEl = document.getElementById("cd-" + key);
-        if (cdEl) cdEl.textContent = `${remaining}s left`;
-        if (remaining <= 0) {
-          clearInterval(interval);
-          db.ref("echoes").child(key).remove();
-        }
-      }, 1000);
-    });
-  }
-
-  function replyTo(key) {
-    const input = document.getElementById("input-" + key);
-    const reply = input.value.trim();
-    if (reply) {
-      const repliesRef = db.ref("echoes").child(key).child("replies");
-      repliesRef.once("value", snap => {
-        const replies = snap.val() || [];
-        replies.push(reply);
-        repliesRef.set(replies);
-      });
-      input.value = "";
-    }
-  }
-
-  db.ref("echoes").on("value", renderThreads);
 </script>
-
-
-
-  
 </body>
 </html>
 

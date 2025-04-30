@@ -15,7 +15,6 @@
       height: 100vh;
       overflow: hidden;
     }
-
     header {
       padding: 20px;
       text-align: center;
@@ -27,13 +26,11 @@
       justify-content: center;
       align-items: center;
     }
-
     #navToggle {
       cursor: pointer;
       font-size: 28px;
       margin-left: 12px;
     }
-
     #navMenu {
       display: none;
       margin-top: 10px;
@@ -41,42 +38,35 @@
       color: white;
       text-align: center;
     }
-
     #navMenu div {
       margin: 4px 0;
       cursor: pointer;
     }
-
     #navMenu div:hover {
       text-decoration: underline;
     }
-
     #subtitle {
       text-align: center;
       font-size: 20px;
       margin-top: 10px;
       color: #aaa;
     }
-
     #newThread {
       display: flex;
-      flex-direction: column;
-      align-items: center;
+      justify-content: center;
       padding: 10px;
       background-color: #111;
       border-bottom: 1px solid #333;
     }
-
-    #threadTitle, #threadContent {
+    #threadInput {
       width: 60%;
       padding: 10px;
       border: 1px solid #333;
       border-radius: 4px;
       background-color: #111;
       color: white;
-      margin: 6px 0;
+      margin-right: 10px;
     }
-
     #postThread {
       padding: 10px 20px;
       border: none;
@@ -85,30 +75,45 @@
       cursor: pointer;
       border-radius: 4px;
     }
-
     #postThread:hover {
       background-color: #555;
     }
-
+    #contentInput {
+      width: 60%;
+      padding: 10px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background-color: #111;
+      color: white;
+      margin-top: 10px;
+      display: none;
+    }
+    #confirmEcho {
+      margin-top: 10px;
+      padding: 10px 20px;
+      border: none;
+      background-color: #555;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+      display: none;
+    }
     #threads {
       flex: 1;
       overflow-y: auto;
       padding: 20px;
     }
-
     .thread {
       background-color: #222;
       padding: 10px;
       margin-bottom: 12px;
       border-radius: 6px;
     }
-
     .countdown {
       font-size: 12px;
       color: #aaa;
       margin-top: 5px;
     }
-
     .replyInput {
       width: 100%;
       margin-top: 8px;
@@ -117,7 +122,6 @@
       border: 1px solid #333;
       color: white;
     }
-
     .replyButton {
       margin-top: 4px;
       padding: 6px 10px;
@@ -126,11 +130,9 @@
       border: none;
       cursor: pointer;
     }
-
     .replyButton:hover {
       background-color: #555;
     }
-
     .reply {
       padding: 6px 10px;
       background-color: #333;
@@ -143,7 +145,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
 </head>
 <body>
-
   <header>
     VOID — Echoes
     <span id="navToggle" onclick="toggleNav()">≡</span>
@@ -160,21 +161,20 @@
   <div id="subtitle">Start a thread that echoes for 1 hour...</div>
 
   <div id="newThread">
-    <input id="threadTitle" placeholder="Echo title..." />
-    <textarea id="threadContent" placeholder="Now write your Echo..." rows="3"></textarea>
-    <button id="postThread">Echo</button>
+    <input id="threadInput" placeholder="Echo title..." />
+    <button id="postThread">Next</button>
+  </div>
+  <div style="display: flex; justify-content: center; flex-direction: column; align-items: center;">
+    <textarea id="contentInput" placeholder="Write your thread content..."></textarea>
+    <button id="confirmEcho">Echo</button>
   </div>
 
   <div id="threads"></div>
 
   <script>
-  function toggleNav() {
-    const menu = document.getElementById("navMenu");
-    menu.style.display = menu.style.display === "block" ? "none" : "block";
-  }
-
+  // Firebase config using your app ID
   const firebaseConfig = {
-    apiKey: "AIzaSyClW4zHDde1rQm6RkHQcD2rM0sklBBgdrM",
+    apiKey: "AIzaSyA3uNFaVn0GErmvPJ3frqxTmc8NYBOVOJk",
     authDomain: "void-d9ec4.firebaseapp.com",
     databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
     projectId: "void-d9ec4",
@@ -182,89 +182,121 @@
     messagingSenderId: "267268035851",
     appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
   };
+
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  const threadsDiv = document.getElementById("threads");
-  const titleInput = document.getElementById("threadTitle");
-  const contentInput = document.getElementById("threadContent");
-  const postButton = document.getElementById("postThread");
+  let tempTitle = '';
 
-  postButton.onclick = () => {
-    const title = titleInput.value.trim();
-    const content = contentInput.value.trim();
-    if (title && content) {
-      const timestamp = Date.now();
-      const threadRef = db.ref("echoes").push();
-      threadRef.set({
-        title,
-        content,
-        timestamp,
-        replies: []
-      });
-      titleInput.value = "";
-      contentInput.value = "";
-    }
-  };
+  document.getElementById("postThread").addEventListener("click", () => {
+    const title = document.getElementById("threadInput").value.trim();
+    if (!title) return;
+    tempTitle = title;
+    document.getElementById("threadInput").style.display = "none";
+    document.getElementById("postThread").style.display = "none";
+    document.getElementById("contentInput").style.display = "block";
+    document.getElementById("confirmEcho").style.display = "inline-block";
+  });
+
+  document.getElementById("confirmEcho").addEventListener("click", () => {
+    const content = document.getElementById("contentInput").value.trim();
+    if (!content) return;
+    const now = Date.now();
+    const thread = {
+      title: tempTitle,
+      content,
+      timestamp: now,
+      expiresAt: now + 60 * 60 * 1000, // 1 hour
+      replies: []
+    };
+    db.ref("echoes").push(thread);
+    resetForm();
+  });
+
+  function resetForm() {
+    document.getElementById("threadInput").value = "";
+    document.getElementById("threadInput").style.display = "block";
+    document.getElementById("postThread").style.display = "inline-block";
+    document.getElementById("contentInput").value = "";
+    document.getElementById("contentInput").style.display = "none";
+    document.getElementById("confirmEcho").style.display = "none";
+  }
 
   function renderThreads(snapshot) {
-    threadsDiv.innerHTML = "";
-    const now = Date.now();
+    const threadsContainer = document.getElementById("threads");
+    threadsContainer.innerHTML = "";
 
-    snapshot.forEach(child => {
-      const key = child.key;
-      const data = child.val();
-      const expiresAt = data.timestamp + 60 * 60 * 1000; // 1 hour
-      const secondsLeft = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+    const threads = snapshot.val();
+    if (!threads) return;
 
-      if (secondsLeft <= 0) {
-        db.ref("echoes").child(key).remove();
+    Object.entries(threads).forEach(([id, thread]) => {
+      if (Date.now() > thread.expiresAt) {
+        db.ref("echoes").child(id).remove();
         return;
       }
 
-      const threadEl = document.createElement("div");
-      threadEl.className = "thread";
+      const threadDiv = document.createElement("div");
+      threadDiv.className = "thread";
+      threadDiv.innerHTML = `<strong>${thread.title}</strong><br>${thread.content}`;
 
-      threadEl.innerHTML = `
-        <div><strong>${data.title}</strong></div>
-        <div>${data.content}</div>
-        <div class="countdown" id="cd-${key}">${secondsLeft}s left</div>
-        <div class="replies">${(data.replies || []).map(reply => `<div class="reply">${reply}</div>`).join("")}</div>
-        <input class="replyInput" id="input-${key}" placeholder="Reply..."/>
-        <button class="replyButton" onclick="replyTo('${key}')">Reply</button>
-      `;
+      const countdown = document.createElement("div");
+      countdown.className = "countdown";
+      countdown.textContent = updateCountdown(thread.expiresAt);
+      threadDiv.appendChild(countdown);
 
-      threadsDiv.appendChild(threadEl);
-
-      // Countdown updates
       setInterval(() => {
-        const newSeconds = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
-        const cdEl = document.getElementById("cd-" + key);
-        if (cdEl) cdEl.textContent = `${newSeconds}s left`;
+        countdown.textContent = updateCountdown(thread.expiresAt);
       }, 1000);
 
-      // Auto-remove after expiration
-      setTimeout(() => {
-        db.ref("echoes").child(key).remove();
-      }, expiresAt - now);
+      // Reply form
+      const replyInput = document.createElement("input");
+      replyInput.className = "replyInput";
+      replyInput.placeholder = "Reply...";
+      const replyBtn = document.createElement("button");
+      replyBtn.className = "replyButton";
+      replyBtn.textContent = "Send";
+
+      replyBtn.onclick = () => {
+        const replyText = replyInput.value.trim();
+        if (!replyText) return;
+        const updatedReplies = thread.replies || [];
+        updatedReplies.push(replyText);
+        db.ref("echoes").child(id).update({ replies: updatedReplies });
+        replyInput.value = "";
+      };
+
+      threadDiv.appendChild(replyInput);
+      threadDiv.appendChild(replyBtn);
+
+      // Show existing replies
+      if (thread.replies && Array.isArray(thread.replies)) {
+        thread.replies.forEach(reply => {
+          const replyDiv = document.createElement("div");
+          replyDiv.className = "reply";
+          replyDiv.textContent = reply;
+          threadDiv.appendChild(replyDiv);
+        });
+      }
+
+      threadsContainer.appendChild(threadDiv);
     });
   }
 
-  function replyTo(key) {
-    const input = document.getElementById("input-" + key);
-    const reply = input.value.trim();
-    if (reply) {
-      const threadRef = db.ref("echoes").child(key).child("replies");
-      threadRef.once("value", snap => {
-        const replies = snap.val() || [];
-        replies.push(reply);
-        threadRef.set(replies);
-      });
-      input.value = "";
-    }
+  function updateCountdown(expiryTime) {
+    const now = Date.now();
+    const diff = expiryTime - now;
+    if (diff <= 0) return "Expired";
+    const mins = Math.floor(diff / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    return `Expires in ${mins}m ${secs}s`;
   }
 
   db.ref("echoes").on("value", renderThreads);
+
+  function toggleNav() {
+    const menu = document.getElementById("navMenu");
+    menu.style.display = menu.style.display === "block" ? "none" : "block";
+  }
 </script>
 </body>
 </html>

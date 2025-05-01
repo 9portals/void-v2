@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Void — Account</title>
+  <title>Void — Accounts</title>
   <style>
     body {
       margin: 0;
@@ -21,12 +21,8 @@
       border-bottom: 1px solid #444;
     }
 
-    .form-container {
-      margin-top: 30px;
-    }
-
     input, button {
-      margin: 5px;
+      margin: 6px;
       padding: 10px;
       border: none;
       border-radius: 4px;
@@ -44,14 +40,6 @@
 
     .hidden {
       display: none;
-    }
-
-    #profileView {
-      margin-top: 30px;
-    }
-
-    #editProfileForm {
-      margin-top: 20px;
     }
 
     img.profile-pic {
@@ -73,38 +61,26 @@
 
   <header>VOID — Accounts</header>
 
-  <div class="form-container" id="authForms">
-    <h2 id="formTitle">Login</h2>
+  <div id="authSection">
+    <h2>Login or Signup</h2>
     <input type="email" id="email" placeholder="Email"><br>
     <input type="password" id="password" placeholder="Password"><br>
+    <input type="text" id="username" placeholder="Username (for signup)"><br>
     <button onclick="login()">Login</button>
-    <button onclick="toggleForm()">Switch to Signup</button>
-  </div>
-
-  <div class="form-container hidden" id="signupForm">
-    <h2>Signup</h2>
-    <input type="text" id="signupUsername" placeholder="Username"><br>
-    <input type="email" id="signupEmail" placeholder="Email"><br>
-    <input type="password" id="signupPassword" placeholder="Password"><br>
-    <input type="file" id="signupProfilePic"><br>
     <button onclick="signup()">Signup</button>
-    <button onclick="toggleForm()">Back to Login</button>
   </div>
 
-  <div id="profileView" class="hidden">
+  <div id="profileSection" class="hidden">
     <h2>Your Profile</h2>
-    <img id="profileImage" class="profile-pic" src="https://via.placeholder.com/100?text=VOID" alt="Profile Picture"><br>
-    <p><strong>Username:</strong> <span id="viewUsername"></span></p>
-    <p><strong>Email:</strong> <span id="viewEmail"></span></p>
-    <button onclick="showEditForm()">Edit Profile</button>
-    <button onclick="logout()">Logout</button>
-  </div>
+    <img id="profilePic" class="profile-pic" src="https://via.placeholder.com/100?text=VOID"><br>
+    <p><strong>Username:</strong> <span id="displayUsername"></span></p>
+    <p><strong>Email:</strong> <span id="displayEmail"></span></p>
 
-  <div id="editProfileForm" class="hidden">
-    <h2>Edit Profile</h2>
-    <input type="text" id="editUsername" placeholder="New Username"><br>
-    <input type="file" id="profilePicInput"><br>
-    <button onclick="saveProfile()">Save</button>
+    <h3>Update Profile Picture</h3>
+    <input type="file" id="uploadPic"><br>
+    <button onclick="uploadProfilePic()">Upload Picture</button><br><br>
+
+    <button onclick="logout()">Logout</button>
   </div>
 
   <script>
@@ -115,107 +91,90 @@
       projectId: "void-d9ec4",
       storageBucket: "void-d9ec4.appspot.com",
       messagingSenderId: "267268035851",
-      appId: "1:267268035851:web:d535fe4175c06f170f3e0e",
-      measurementId: "G-78DGNW8HV3"
+      appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
     };
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
     const storage = firebase.storage();
 
-    function toggleForm() {
-      document.getElementById('authForms').classList.toggle('hidden');
-      document.getElementById('signupForm').classList.toggle('hidden');
-    }
-
     function signup() {
-      const email = document.getElementById('signupEmail').value;
-      const password = document.getElementById('signupPassword').value;
-      const username = document.getElementById('signupUsername').value;
-      const file = document.getElementById('signupProfilePic').files[0];
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const username = document.getElementById('username').value;
 
       if (username.length < 6 || password.length < 8) {
         alert("Username must be at least 6 characters, password at least 8.");
         return;
       }
 
-      auth.createUserWithEmailAndPassword(email, password).then(userCred => {
-        const uid = userCred.user.uid;
-
-        if (file) {
-          const storageRef = storage.ref("profilePics/" + uid);
-          storageRef.put(file).then(() => {
-            storageRef.getDownloadURL().then(url => {
-              db.ref("users/" + uid).set({
-                username: username,
-                email: email,
-                profilePic: url
-              });
-            });
-          });
-        } else {
-          db.ref("users/" + uid).set({
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(cred => {
+          return db.ref("users/" + cred.user.uid).set({
             username: username,
             email: email
           });
-        }
-      }).catch(err => alert(err.message));
+        })
+        .catch(error => alert(error.message));
     }
 
     function login() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      auth.signInWithEmailAndPassword(email, password).catch(err => alert(err.message));
+
+      auth.signInWithEmailAndPassword(email, password)
+        .catch(error => alert(error.message));
     }
 
     function logout() {
-      auth.signOut();
-      location.reload();
+      auth.signOut().then(() => location.reload());
     }
 
-    function showEditForm() {
-      document.getElementById("editProfileForm").classList.remove("hidden");
-    }
+    function uploadProfilePic() {
+      const fileInput = document.getElementById('uploadPic');
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("Please select a file.");
+        return;
+      }
 
-    function saveProfile() {
-      const newUsername = document.getElementById("editUsername").value;
-      const file = document.getElementById("profilePicInput").files[0];
       const user = auth.currentUser;
-
-      if (!user) return;
-
-      if (newUsername.length >= 6) {
-        db.ref("users/" + user.uid).update({ username: newUsername });
-        document.getElementById("viewUsername").textContent = newUsername;
+      if (!user) {
+        alert("User not signed in.");
+        return;
       }
 
-      if (file) {
-        const storageRef = storage.ref("profilePics/" + user.uid);
-        storageRef.put(file).then(() => {
-          storageRef.getDownloadURL().then(url => {
-            db.ref("users/" + user.uid).update({ profilePic: url });
-            document.getElementById("profileImage").src = url;
-          });
+      const storageRef = storage.ref("profilePics/" + user.uid);
+      storageRef.put(file)
+        .then(snapshot => snapshot.ref.getDownloadURL())
+        .then(url => {
+          return db.ref("users/" + user.uid).update({ profilePic: url });
+        })
+        .then(() => {
+          document.getElementById('profilePic').src = URL.createObjectURL(file); // faster feedback
+          alert("Profile picture updated!");
+        })
+        .catch(error => {
+          console.error("Upload error:", error);
+          alert("Upload failed. Check console.");
         });
-      }
-
-      document.getElementById("editProfileForm").classList.add("hidden");
     }
 
     auth.onAuthStateChanged(user => {
       if (user) {
-        document.getElementById("authForms").classList.add("hidden");
-        document.getElementById("signupForm").classList.add("hidden");
-        document.getElementById("profileView").classList.remove("hidden");
+        document.getElementById("authSection").classList.add("hidden");
+        document.getElementById("profileSection").classList.remove("hidden");
 
-        db.ref("users/" + user.uid).once("value").then(snapshot => {
-          const data = snapshot.val();
-          document.getElementById("viewUsername").textContent = data.username || "";
-          document.getElementById("viewEmail").textContent = data.email || "";
-          if (data.profilePic) {
-            document.getElementById("profileImage").src = data.profilePic;
-          }
-        });
+        db.ref("users/" + user.uid).once("value")
+          .then(snapshot => {
+            const data = snapshot.val();
+            document.getElementById("displayUsername").textContent = data.username || "";
+            document.getElementById("displayEmail").textContent = data.email || "";
+            if (data.profilePic) {
+              document.getElementById("profilePic").src = data.profilePic;
+            }
+          });
       }
     });
   </script>

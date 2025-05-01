@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Firebase Upload Test</title>
+  <title>Firebase Upload Test (Improved)</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
@@ -9,15 +9,19 @@
 </head>
 <body style="background:black; color:white; text-align:center; padding:40px;">
 
-  <h2>Upload Profile Picture (TEMP RULES)</h2>
-  <input type="file" id="fileInput" />
+  <h2>Upload Profile Picture (Debug Mode)</h2>
+  <input type="file" id="fileInput" accept="image/*" />
   <br><br>
-  <button onclick="uploadImage()">Upload</button>
-  <p id="status" style="white-space: pre-line; font-family: monospace;">Status: Ready</p>
+  <button id="uploadBtn" disabled>Upload</button>
+  <p id="status" style="white-space: pre-line; font-family: monospace;">Status: Loading...</p>
   <img id="preview" src="" style="display:none; max-width:200px; margin-top:20px;" />
 
   <script>
     const status = document.getElementById('status');
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const preview = document.getElementById('preview');
+
     function updateStatus(msg) {
       console.log(msg);
       status.textContent = "Status: " + msg;
@@ -35,32 +39,46 @@
 
     firebase.initializeApp(firebaseConfig);
 
-    updateStatus("Initializing...");
+    let currentUser = null;
 
     firebase.auth().signInWithEmailAndPassword('florisveen@gmail.com', '42884288')
       .then(userCredential => {
-        updateStatus("Signed in as: " + userCredential.user.email);
+        currentUser = userCredential.user;
+        updateStatus("Signed in as: " + currentUser.email);
+        uploadBtn.disabled = false;
       })
       .catch(error => {
         updateStatus("Login failed: " + error.message);
       });
 
-    function uploadImage() {
-      const file = document.getElementById('fileInput').files[0];
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+        updateStatus("Image loaded. Ready to upload.");
+      }
+    });
+
+    uploadBtn.addEventListener('click', () => {
+      const file = fileInput.files[0];
       if (!file) {
         updateStatus("No file selected.");
         return;
       }
 
-      const user = firebase.auth().currentUser;
-      if (!user) {
+      if (!currentUser) {
         updateStatus("User not signed in.");
         return;
       }
 
       updateStatus("Uploading...");
 
-      const storageRef = firebase.storage().ref('profilePictures/' + user.uid + '.jpg');
+      const storageRef = firebase.storage().ref('profilePictures/' + currentUser.uid + '.jpg');
       storageRef.put(file)
         .then(snapshot => {
           updateStatus("Upload complete. Getting download URL...");
@@ -68,17 +86,16 @@
         })
         .then(downloadURL => {
           updateStatus("Success!\nURL: " + downloadURL);
-          document.getElementById('preview').src = downloadURL;
-          document.getElementById('preview').style.display = 'block';
+          preview.src = downloadURL;
 
-          return firebase.database().ref('users/' + user.uid).update({
+          return firebase.database().ref('users/' + currentUser.uid).update({
             profilePicture: downloadURL
           });
         })
         .catch(error => {
           updateStatus("Upload failed: " + error.message);
         });
-    }
+    });
   </script>
 
 </body>

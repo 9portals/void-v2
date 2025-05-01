@@ -1,32 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Firebase Upload Test (Improved)</title>
+  <title>Upload Profile Picture (Universal)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
-<body style="background:black; color:white; text-align:center; padding:40px;">
+<body style="background:black; color:white; text-align:center; padding:40px; font-family:sans-serif;">
 
-  <h2>Upload Profile Picture (Debug Mode)</h2>
+  <h2>Upload Profile Picture</h2>
   <input type="file" id="fileInput" accept="image/*" />
   <br><br>
   <button id="uploadBtn" disabled>Upload</button>
-  <p id="status" style="white-space: pre-line; font-family: monospace;">Status: Loading...</p>
-  <img id="preview" src="" style="display:none; max-width:200px; margin-top:20px;" />
+  <p id="status">Status: Initializing...</p>
+  <img id="preview" style="display:none; margin-top:20px; max-width:250px;" />
 
   <script>
-    const status = document.getElementById('status');
-    const fileInput = document.getElementById('fileInput');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const preview = document.getElementById('preview');
-
-    function updateStatus(msg) {
-      console.log(msg);
-      status.textContent = "Status: " + msg;
-    }
-
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
       authDomain: "void-d9ec4.firebaseapp.com",
@@ -38,65 +28,80 @@
     };
 
     firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
 
-    let currentUser = null;
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const status = document.getElementById('status');
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const preview = document.getElementById('preview');
 
-    firebase.auth().signInWithEmailAndPassword('florisveen@gmail.com', '42884288')
-      .then(userCredential => {
-        currentUser = userCredential.user;
-        updateStatus("Signed in as: " + currentUser.email);
-        uploadBtn.disabled = false;
-      })
-      .catch(error => {
-        updateStatus("Login failed: " + error.message);
-      });
+    let currentFile = null;
+
+    function updateStatus(msg) {
+      console.log(msg);
+      status.innerText = "Status: " + msg;
+    }
 
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
       if (file) {
+        currentFile = file;
         const reader = new FileReader();
         reader.onload = e => {
           preview.src = e.target.result;
           preview.style.display = 'block';
         };
         reader.readAsDataURL(file);
-        updateStatus("Image loaded. Ready to upload.");
+        updateStatus("Image selected. Ready to upload.");
+        uploadBtn.disabled = false;
       }
     });
 
-    uploadBtn.addEventListener('click', () => {
-      const file = fileInput.files[0];
-      if (!file) {
-        updateStatus("No file selected.");
-        return;
-      }
+    if (!isMobile) {
+      // Desktop: Use Authenticated Upload
+      firebase.auth().signInWithEmailAndPassword('florisveen@gmail.com', '42884288')
+        .then(userCredential => {
+          const user = userCredential.user;
+          updateStatus("Signed in as " + user.email + ". Select an image to upload.");
+          uploadBtn.addEventListener('click', () => {
+            if (!currentFile) return updateStatus("No file selected.");
+            updateStatus("Uploading...");
 
-      if (!currentUser) {
-        updateStatus("User not signed in.");
-        return;
-      }
-
-      updateStatus("Uploading...");
-
-      const storageRef = firebase.storage().ref('profilePictures/' + currentUser.uid + '.jpg');
-      storageRef.put(file)
-        .then(snapshot => {
-          updateStatus("Upload complete. Getting download URL...");
-          return snapshot.ref.getDownloadURL();
-        })
-        .then(downloadURL => {
-          updateStatus("Success!\nURL: " + downloadURL);
-          preview.src = downloadURL;
-
-          return firebase.database().ref('users/' + currentUser.uid).update({
-            profilePicture: downloadURL
+            const storageRef = storage.ref('profilePictures/' + user.uid + '.jpg');
+            storageRef.put(currentFile)
+              .then(snapshot => snapshot.ref.getDownloadURL())
+              .then(url => {
+                updateStatus("Upload complete!\nURL: " + url);
+                preview.src = url;
+              })
+              .catch(err => updateStatus("Upload failed: " + err.message));
           });
         })
-        .catch(error => {
-          updateStatus("Upload failed: " + error.message);
-        });
-    });
-  </script>
+        .catch(err => updateStatus("Login failed: " + err.message));
+    } else {
+      // Mobile: Anonymous Upload to public folder
+      updateStatus("Mobile device detected. Using public upload.");
+      uploadBtn.disabled = false;
 
+      uploadBtn.addEventListener('click', () => {
+        if (!currentFile) return updateStatus("No file selected.");
+        updateStatus("Uploading (mobile)...");
+
+        const timestamp = Date.now();
+        const randomId = Math.floor(Math.random() * 1000000);
+        const path = `publicUploads/mobile_${timestamp}_${randomId}.jpg`;
+
+        const storageRef = storage.ref(path);
+        storageRef.put(currentFile)
+          .then(snapshot => snapshot.ref.getDownloadURL())
+          .then(url => {
+            updateStatus("Upload complete!\nURL: " + url);
+            preview.src = url;
+          })
+          .catch(err => updateStatus("Upload failed: " + err.message));
+      });
+    }
+  </script>
 </body>
 </html>

@@ -9,7 +9,7 @@
 </head>
 <body style="background:black; color:white; text-align:center; padding:40px;">
 
-  <h2>Upload Profile Picture</h2>
+  <h2>Upload Profile Picture (TEMP RULES)</h2>
   <input type="file" id="fileInput" />
   <br><br>
   <button onclick="uploadImage()">Upload</button>
@@ -39,8 +39,7 @@
 
     firebase.auth().signInWithEmailAndPassword('florisveen@gmail.com', '42884288')
       .then(userCredential => {
-        const user = userCredential.user;
-        updateStatus("Signed in as: " + user.email);
+        updateStatus("Signed in as: " + userCredential.user.email);
       })
       .catch(error => {
         updateStatus("Login failed: " + error.message);
@@ -68,14 +67,12 @@
           return snapshot.ref.getDownloadURL();
         })
         .then(downloadURL => {
-          updateStatus("Download URL: " + downloadURL + "\nUpdating profile in database...");
+          updateStatus("Success!\nURL: " + downloadURL);
+          document.getElementById('preview').src = downloadURL;
+          document.getElementById('preview').style.display = 'block';
+
           return firebase.database().ref('users/' + user.uid).update({
             profilePicture: downloadURL
-          }).then(() => {
-            updateStatus("Upload successful!\nURL saved in database.");
-            const img = document.getElementById('preview');
-            img.src = downloadURL;
-            img.style.display = 'block';
           });
         })
         .catch(error => {

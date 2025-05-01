@@ -1,43 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Firebase Profile Upload Test</title>
-  <style>
-    body {
-      background: black;
-      color: white;
-      font-family: sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-    #profile {
-      display: none;
-    }
-    img {
-      max-width: 150px;
-      border-radius: 50%;
-      margin-top: 20px;
-    }
-  </style>
+  <title>Firebase Upload Test</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
-<body>
-  <h1>Firebase Upload Test</h1>
+<body style="background:black; color:white; text-align:center; padding:40px;">
 
-  <div id="login-status">Logging in...</div>
-
-  <div id="profile">
-    <input type="file" id="profilePicInput" accept="image/*"><br><br>
-    <button onclick="uploadProfilePicture()">Upload Profile Picture</button>
-    <div id="status"></div>
-    <h2>Current Profile Picture:</h2>
-    <img id="profilePicDisplay" src="" alt="None yet">
-  </div>
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <h2>Upload Profile Picture</h2>
+  <input type="file" id="fileInput" />
+  <br><br>
+  <button onclick="uploadImage()">Upload</button>
+  <p id="status">Status: Ready</p>
+  <img id="preview" src="" style="display:none; max-width:200px; margin-top:20px;" />
 
   <script>
     const firebaseConfig = {
@@ -51,53 +28,50 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const database = firebase.database();
-    const storage = firebase.storage();
 
-    auth.signInWithEmailAndPassword("florisveen@gmail.com", "42884288")
-      .then(() => {
-        document.getElementById('login-status').innerText = "Logged in as florisveen@gmail.com";
-        document.getElementById('profile').style.display = 'block';
-        loadProfilePicture(auth.currentUser.uid);
+    const status = document.getElementById('status');
+
+    firebase.auth().signInWithEmailAndPassword('florisveen@gmail.com', '42884288')
+      .then(userCredential => {
+        status.textContent = "Signed in as: " + userCredential.user.email;
       })
       .catch(error => {
-        document.getElementById('login-status').innerText = "Login failed: " + error.message;
-        console.error("Login failed:", error.message);
+        status.textContent = "Login failed: " + error.message;
       });
 
-    function uploadProfilePicture() {
-      const file = document.getElementById('profilePicInput').files[0];
-      if (!file) return alert("Choose a file first.");
+    function uploadImage() {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) {
+        status.textContent = "Please choose a file.";
+        return;
+      }
 
-      const uid = auth.currentUser.uid;
-      const ref = storage.ref('profilePictures/' + uid + '.jpg');
-      const uploadTask = ref.put(file);
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        status.textContent = "User not signed in.";
+        return;
+      }
 
-      uploadTask.on('state_changed',
-        () => {
-          document.getElementById('status').innerText = "Uploading...";
-        },
-        err => {
-          console.error(err);
-          document.getElementById('status').innerText = "Upload failed.";
-        },
-        () => {
-          ref.getDownloadURL().then(url => {
-            database.ref('users/' + uid).update({ profilePicture: url });
-            document.getElementById('profilePicDisplay').src = url;
-            document.getElementById('status').innerText = "Upload successful!";
-          });
-        }
-      );
-    }
+      status.textContent = "Uploading...";
+      const storageRef = firebase.storage().ref('profilePictures/' + user.uid + '.jpg');
 
-    function loadProfilePicture(uid) {
-      database.ref('users/' + uid + '/profilePicture').once('value').then(snap => {
-        const url = snap.val();
-        if (url) document.getElementById('profilePicDisplay').src = url;
+      storageRef.put(file).then(snapshot => {
+        return snapshot.ref.getDownloadURL();
+      }).then(downloadURL => {
+        // Save the download URL in Realtime Database
+        return firebase.database().ref('users/' + user.uid).update({
+          profilePicture: downloadURL
+        }).then(() => {
+          status.textContent = "Upload successful!";
+          const img = document.getElementById('preview');
+          img.src = downloadURL;
+          img.style.display = 'block';
+        });
+      }).catch(error => {
+        status.textContent = "Upload failed: " + error.message;
       });
     }
   </script>
+
 </body>
 </html>

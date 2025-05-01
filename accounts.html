@@ -1,57 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Void — Accounts</title>
+  <title>VOID — Upload Profile Pic</title>
   <style>
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: black;
+      background: black;
       color: white;
       text-align: center;
+      font-family: Arial, sans-serif;
     }
-
-    header {
-      padding: 20px;
-      background-color: #111;
-      font-size: 28px;
-      font-weight: bold;
-      border-bottom: 1px solid #444;
-    }
-
-    input, button {
-      margin: 6px;
-      padding: 10px;
-      border: none;
-      border-radius: 4px;
-    }
-
-    button {
-      background-color: #333;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #555;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    img.profile-pic {
-      width: 100px;
-      height: 100px;
+    img {
+      width: 120px;
+      height: 120px;
       border-radius: 50%;
       object-fit: cover;
-      margin-top: 10px;
+      margin: 10px 0;
     }
   </style>
 
-  <!-- Firebase SDKs -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
@@ -59,31 +26,13 @@
 </head>
 <body>
 
-  <header>VOID — Accounts</header>
-
-  <div id="authSection">
-    <h2>Login or Signup</h2>
-    <input type="email" id="email" placeholder="Email"><br>
-    <input type="password" id="password" placeholder="Password"><br>
-    <input type="text" id="username" placeholder="Username (for signup)"><br>
-    <button onclick="login()">Login</button>
-    <button onclick="signup()">Signup</button>
-  </div>
-
-  <div id="profileSection" class="hidden">
-    <h2>Your Profile</h2>
-    <img id="profilePic" class="profile-pic" src="https://via.placeholder.com/100?text=VOID"><br>
-    <p><strong>Username:</strong> <span id="displayUsername"></span></p>
-    <p><strong>Email:</strong> <span id="displayEmail"></span></p>
-
-    <h3>Update Profile Picture</h3>
-    <input type="file" id="uploadPic"><br>
-    <button onclick="uploadProfilePic()">Upload Picture</button><br><br>
-
-    <button onclick="logout()">Logout</button>
-  </div>
+  <h1>Upload Profile Picture</h1>
+  <input type="file" id="imageUpload" accept="image/*"><br>
+  <img id="preview" src="#" alt="Preview" style="display:none;"><br>
+  <button onclick="uploadToFirebase()">Upload to Firebase</button>
 
   <script>
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
       authDomain: "void-d9ec4.firebaseapp.com",
@@ -96,87 +45,56 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const db = firebase.database();
     const storage = firebase.storage();
+    const db = firebase.database();
 
-    function signup() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const username = document.getElementById('username').value;
+    let selectedFile;
 
-      if (username.length < 6 || password.length < 8) {
-        alert("Username must be at least 6 characters, password at least 8.");
-        return;
-      }
+    // Preview logic
+    document.getElementById('imageUpload').addEventListener('change', function () {
+      selectedFile = this.files[0];
+      const reader = new FileReader();
 
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(cred => {
-          return db.ref("users/" + cred.user.uid).set({
-            username: username,
-            email: email
-          });
-        })
-        .catch(error => alert(error.message));
-    }
+      reader.onload = function (event) {
+        const base64String = event.target.result;
+        const previewImg = document.getElementById('preview');
+        previewImg.src = base64String;
+        previewImg.style.display = 'block';
+      };
 
-    function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+      reader.readAsDataURL(selectedFile);
+    });
 
-      auth.signInWithEmailAndPassword(email, password)
-        .catch(error => alert(error.message));
-    }
-
-    function logout() {
-      auth.signOut().then(() => location.reload());
-    }
-
-    function uploadProfilePic() {
-      const fileInput = document.getElementById('uploadPic');
-      const file = fileInput.files[0];
-      if (!file) {
-        alert("Please select a file.");
-        return;
-      }
-
+    // Upload logic
+    function uploadToFirebase() {
       const user = auth.currentUser;
       if (!user) {
-        alert("User not signed in.");
+        alert("Please log in first.");
+        return;
+      }
+      if (!selectedFile) {
+        alert("No file selected.");
         return;
       }
 
       const storageRef = storage.ref("profilePics/" + user.uid);
-      storageRef.put(file)
+      storageRef.put(selectedFile)
         .then(snapshot => snapshot.ref.getDownloadURL())
         .then(url => {
           return db.ref("users/" + user.uid).update({ profilePic: url });
         })
         .then(() => {
-          document.getElementById('profilePic').src = URL.createObjectURL(file); // faster feedback
-          alert("Profile picture updated!");
+          alert("Uploaded and saved!");
         })
-        .catch(error => {
-          console.error("Upload error:", error);
-          alert("Upload failed. Check console.");
+        .catch(err => {
+          console.error(err);
+          alert("Upload failed.");
         });
     }
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        document.getElementById("authSection").classList.add("hidden");
-        document.getElementById("profileSection").classList.remove("hidden");
-
-        db.ref("users/" + user.uid).once("value")
-          .then(snapshot => {
-            const data = snapshot.val();
-            document.getElementById("displayUsername").textContent = data.username || "";
-            document.getElementById("displayEmail").textContent = data.email || "";
-            if (data.profilePic) {
-              document.getElementById("profilePic").src = data.profilePic;
-            }
-          });
-      }
-    });
+    // Simulated login for testing (REMOVE for production)
+    auth.signInWithEmailAndPassword("test@void.com", "password123")
+      .catch(err => console.log("Login error:", err.message));
   </script>
 </body>
 </html>

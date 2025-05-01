@@ -5,7 +5,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+    import { getStorage, ref, uploadBytesResumable } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
@@ -19,7 +19,6 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const storage = getStorage(app);
-
     const statusEl = document.getElementById("status");
 
     async function tryUploadBlob() {
@@ -27,17 +26,28 @@
         statusEl.textContent = "Logging in...";
         const userCredential = await signInWithEmailAndPassword(auth, "florisveen@gmail.com", "42884288");
         const user = userCredential.user;
+        statusEl.textContent = "Logged in as " + user.email + ". Preparing upload...";
 
-        statusEl.textContent = "Logged in as " + user.email + ". Uploading test blob...";
-
-        const storageRef = ref(storage, 'testUploads/' + user.uid + '_test.txt');
         const blob = new Blob(["Hello World"], { type: 'text/plain' });
+        const storageRef = ref(storage, 'testUploads/' + user.uid + '_test.txt');
+        const uploadTask = uploadBytesResumable(storageRef, blob);
 
-        await uploadBytes(storageRef, blob);
-        statusEl.textContent = "Test blob uploaded successfully!";
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            statusEl.textContent = `Upload is ${percent.toFixed(0)}% done...`;
+          },
+          (error) => {
+            console.error("Upload error:", error);
+            statusEl.textContent = "Upload failed: " + error.message;
+          },
+          () => {
+            statusEl.textContent = "Upload complete!";
+          }
+        );
       } catch (err) {
-        console.error(err);
-        statusEl.textContent = "Upload failed: " + err.message;
+        console.error("General error:", err);
+        statusEl.textContent = "Error: " + err.message;
       }
     }
 

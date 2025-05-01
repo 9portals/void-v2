@@ -3,10 +3,9 @@
 <head>
   <title>Firebase Upload Test</title>
   <script type="module">
-    // Import Firebase modules
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getStorage, ref, uploadBytes, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
@@ -21,8 +20,6 @@
     const auth = getAuth(app);
     const storage = getStorage(app);
 
-    let currentUser = null;
-
     const statusEl = document.getElementById("status");
     const previewEl = document.getElementById("preview");
 
@@ -30,7 +27,8 @@
       return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     }
 
-    // Sign in hardcoded user
+    let currentUser = null;
+
     signInWithEmailAndPassword(auth, "florisveen@gmail.com", "42884288")
       .then((userCredential) => {
         currentUser = userCredential.user;
@@ -40,40 +38,46 @@
         statusEl.textContent = "Login failed: " + error.message;
       });
 
-    document.getElementById("fileInput").addEventListener("change", async (e) => {
+    document.getElementById("fileInput").addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = function (event) {
-        previewEl.src = event.target.result;
+      reader.onload = async function (event) {
+        const dataUrl = event.target.result;
+        previewEl.src = dataUrl;
+        statusEl.textContent = isMobile() ? "Mobile detected. Uploading..." : "Desktop. Uploading...";
+
+        try {
+          const path = isMobile()
+            ? 'publicUploads/' + file.name
+            : 'profilePictures/' + currentUser.uid + '.jpg';
+
+          const storageRef = ref(storage, path);
+
+          if (isMobile()) {
+            // Upload base64 string
+            await uploadString(storageRef, dataUrl, 'data_url');
+          } else {
+            // Upload binary file
+            await uploadBytes(storageRef, file);
+          }
+
+          const url = await getDownloadURL(storageRef);
+          statusEl.textContent = "Upload successful! URL: " + url;
+        } catch (error) {
+          console.error(error);
+          statusEl.textContent = "Upload failed: " + error.message;
+        }
       };
       reader.readAsDataURL(file);
-
-      statusEl.textContent = isMobile() ? "Mobile detected. Uploading..." : "Desktop. Uploading...";
-
-      try {
-        const path = isMobile()
-          ? 'publicUploads/' + file.name
-          : 'profilePictures/' + currentUser.uid + '.jpg';
-
-        const storageRef = ref(storage, path);
-        const snapshot = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-
-        statusEl.textContent = "Upload successful! URL: " + downloadURL;
-        console.log("Download URL:", downloadURL);
-      } catch (error) {
-        console.error(error);
-        statusEl.textContent = "Upload failed: " + error.message;
-      }
     });
   </script>
 </head>
-<body style="background: black; color: white; font-family: sans-serif; text-align: center; padding-top: 50px;">
+<body style="background:black; color:white; font-family:sans-serif; text-align:center; padding-top:50px;">
   <h1>Firebase Upload Test</h1>
   <input type="file" id="fileInput"><br><br>
-  <img id="preview" src="" style="max-width: 200px; display: block; margin: auto;"><br>
+  <img id="preview" src="" style="max-width:200px; display:block; margin:auto;"><br>
   <p id="status">Waiting for login...</p>
 </body>
 </html>

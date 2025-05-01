@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Profiles - VOID</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      background-color: black;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    header {
+      background-color: #111;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    nav a {
+      margin-left: 15px;
+      text-decoration: none;
+      color: white;
+    }
+    .container {
+      padding: 20px;
+    }
+    .user-card {
+      border: 1px solid #444;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+      position: relative;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    .online { background-color: green; }
+    .offline { background-color: red; }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 20px;
+      background-color: #222;
+      color: white;
+      border: 1px solid #555;
+    }
+    button {
+      background: none;
+      color: white;
+      border: 1px solid #555;
+      padding: 5px 10px;
+      margin-top: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong>VOID</strong></div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="accounts.html">My Profile</a>
+      <a href="profiles.html">Profiles</a>
+      <a href="messages.html">Messages</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </nav>
+  </header>
+  <div class="container">
+    <h2>Explore Profiles</h2>
+    <input type="text" id="searchInput" placeholder="Search users..." onkeyup="filterUsers()" />
+    <div id="usersList">Loading users...</div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
+      authDomain: "void-d9ec4.firebaseapp.com",
+      databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
+      projectId: "void-d9ec4",
+      storageBucket: "void-d9ec4.appspot.com",
+      messagingSenderId: "267268035851",
+      appId: "1:267268035851:web:1e5ab79c51db42160f3e0e",
+      measurementId: "G-ZYMQ3Z6LC5"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    let currentUser;
+
+    auth.onAuthStateChanged(user => {
+      if (!user) return window.location.href = "accounts.html";
+      currentUser = user;
+      loadUsers();
+    });
+
+    function logout() {
+      firebase.auth().signOut();
+    }
+
+    function loadUsers() {
+      db.ref("users").once("value", snap => {
+        const usersData = snap.val() || {};
+        const userEntries = Object.entries(usersData).filter(([uid]) => uid !== currentUser.uid);
+
+        const now = Date.now();
+        userEntries.forEach(([uid, data]) => {
+          data.uid = uid;
+          data.isOnline = data.lastOnline && (now - data.lastOnline < 30000);
+        });
+
+        userEntries.sort((a, b) => {
+          return (b[1].isOnline - a[1].isOnline) || (b[1].lastOnline || 0) - (a[1].lastOnline || 0);
+        });
+
+        displayUsers(userEntries);
+      });
+    }
+
+    function displayUsers(entries) {
+      const container = document.getElementById("usersList");
+      container.innerHTML = "";
+
+      entries.forEach(([uid, data]) => {
+        const div = document.createElement("div");
+        div.className = "user-card";
+        div.setAttribute("data-username", data.username.toLowerCase());
+
+        const dot = document.createElement("span");
+        dot.className = `status-dot ${data.isOnline ? 'online' : 'offline'}`;
+
+        div.innerHTML = `
+          <div>${dot.outerHTML}<strong>${data.username}</strong></div>
+          <div>${data.bio || "No bio yet."}</div>
+          <button onclick="viewProfile('${uid}')">View Profile</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function filterUsers() {
+      const val = document.getElementById("searchInput").value.toLowerCase();
+      const cards = document.querySelectorAll(".user-card");
+      cards.forEach(card => {
+        const match = card.getAttribute("data-username").includes(val);
+        card.style.display = match ? "block" : "none";
+      });
+    }
+
+    function viewProfile(uid) {
+      localStorage.setItem("viewUser", uid);
+      window.location.href = "accounts.html?view=true";
+    }
+  </script>
+</body>
+</html>

@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Firebase Upload Test</title>
+    <title>Base64 Upload Test</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
   </head>
   <body style="background:black; color:white; text-align:center;">
     <h2>Select Image to Upload</h2>
     <input type="file" id="fileInput" accept="image/*"><br><br>
-    <button onclick="uploadImage()">Upload</button>
+    <button onclick="startUpload()">Upload</button>
     <p id="status"></p>
+    <p id="downloadUrl"></p>
 
     <script>
-      // Your Firebase config
       const firebaseConfig = {
         apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
         authDomain: "void-d9ec4.firebaseapp.com",
         databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
         projectId: "void-d9ec4",
-        storageBucket: "void-d9ec4.appspot.com", // corrected this!
+        storageBucket: "void-d9ec4.appspot.com",
         messagingSenderId: "267268035851",
         appId: "1:267268035851:web:1e5ab79c51db42160f3e0e",
         measurementId: "G-ZYMQ3Z6LC5"
@@ -27,7 +27,7 @@
       firebase.initializeApp(firebaseConfig);
       const storage = firebase.storage();
 
-      function uploadImage() {
+      function startUpload() {
         const file = document.getElementById("fileInput").files[0];
         if (!file) {
           alert("No file selected");
@@ -36,18 +36,38 @@
 
         const reader = new FileReader();
         reader.onloadend = function () {
-          const base64String = reader.result;
-          const fileRef = storage.ref('uploads/' + Date.now() + '.jpg');
-          fileRef.putString(base64String, 'data_url')
-            .then(snapshot => {
-              document.getElementById("status").textContent = "Upload success!";
-              console.log("Uploaded:", snapshot.metadata.fullPath);
-            })
-            .catch(error => {
+          let base64strOrj = reader.result; // full data URL
+          let base64str = base64strOrj.replace(/^data:image\/(jpeg|jpg|png);base64,/, '');
+
+          const metadata = {
+            contentType: file.type || 'image/jpeg'
+          };
+
+          const filePath = 'uploads/' + Date.now() + '_' + file.name;
+          const fileRef = storage.ref(filePath);
+          const uploadTask = fileRef.putString(base64str, 'base64', metadata);
+
+          document.getElementById("status").textContent = "Uploading...";
+
+          uploadTask.on('state_changed',
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              document.getElementById("status").textContent = 'Upload is ' + Math.round(progress) + '% done';
+            },
+            (error) => {
               console.error(error);
-              document.getElementById("status").textContent = "Upload failed.";
-            });
+              document.getElementById("status").textContent = 'Upload failed.';
+            },
+            () => {
+              // Completed
+              fileRef.getDownloadURL().then((url) => {
+                document.getElementById("status").textContent = 'Upload complete.';
+                document.getElementById("downloadUrl").innerHTML = `<a href="${url}" style="color:lightgreen;">View Uploaded Image</a>`;
+              });
+            }
+          );
         };
+
         reader.readAsDataURL(file);
       }
     </script>

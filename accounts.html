@@ -25,7 +25,7 @@
       margin-top: 30px;
     }
 
-    input, button, select, textarea {
+    input, button {
       margin: 5px;
       padding: 10px;
       border: none;
@@ -67,6 +67,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -85,6 +86,7 @@
     <input type="text" id="signupUsername" placeholder="Username"><br>
     <input type="email" id="signupEmail" placeholder="Email"><br>
     <input type="password" id="signupPassword" placeholder="Password"><br>
+    <input type="file" id="signupProfilePic"><br>
     <button onclick="signup()">Signup</button>
     <button onclick="toggleForm()">Back to Login</button>
   </div>
@@ -94,10 +96,6 @@
     <img id="profileImage" class="profile-pic" src="https://via.placeholder.com/100?text=VOID" alt="Profile Picture"><br>
     <p><strong>Username:</strong> <span id="viewUsername"></span></p>
     <p><strong>Email:</strong> <span id="viewEmail"></span></p>
-    <p><strong>Name:</strong> <span id="viewName"></span></p>
-    <p><strong>Age:</strong> <span id="viewAge"></span></p>
-    <p><strong>Gender:</strong> <span id="viewGender"></span></p>
-    <p><strong>Bio:</strong> <span id="viewBio"></span></p>
     <button onclick="showEditForm()">Edit Profile</button>
     <button onclick="logout()">Logout</button>
   </div>
@@ -105,16 +103,7 @@
   <div id="editProfileForm" class="hidden">
     <h2>Edit Profile</h2>
     <input type="text" id="editUsername" placeholder="New Username"><br>
-    <input type="text" id="editName" placeholder="Name"><br>
-    <input type="number" id="editAge" placeholder="Age"><br>
-    <select id="editGender">
-      <option value="">Select Gender</option>
-      <option>Male</option>
-      <option>Female</option>
-      <option>Other</option>
-    </select><br>
-    <textarea id="editBio" placeholder="Your bio..."></textarea><br>
-    <input type="url" id="editProfilePicUrl" placeholder="Profile picture URL"><br>
+    <input type="file" id="profilePicInput"><br>
     <button onclick="saveProfile()">Save</button>
   </div>
 
@@ -132,6 +121,7 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
+    const storage = firebase.storage();
 
     function toggleForm() {
       document.getElementById('authForms').classList.toggle('hidden');
@@ -142,6 +132,7 @@
       const email = document.getElementById('signupEmail').value;
       const password = document.getElementById('signupPassword').value;
       const username = document.getElementById('signupUsername').value;
+      const file = document.getElementById('signupProfilePic').files[0];
 
       if (username.length < 6 || password.length < 8) {
         alert("Username must be at least 6 characters, password at least 8.");
@@ -150,10 +141,24 @@
 
       auth.createUserWithEmailAndPassword(email, password).then(userCred => {
         const uid = userCred.user.uid;
-        db.ref("users/" + uid).set({
-          username: username,
-          email: email
-        });
+
+        if (file) {
+          const storageRef = storage.ref("profilePics/" + uid);
+          storageRef.put(file).then(() => {
+            storageRef.getDownloadURL().then(url => {
+              db.ref("users/" + uid).set({
+                username: username,
+                email: email,
+                profilePic: url
+              });
+            });
+          });
+        } else {
+          db.ref("users/" + uid).set({
+            username: username,
+            email: email
+          });
+        }
       }).catch(err => alert(err.message));
     }
 
@@ -173,27 +178,25 @@
     }
 
     function saveProfile() {
+      const newUsername = document.getElementById("editUsername").value;
+      const file = document.getElementById("profilePicInput").files[0];
       const user = auth.currentUser;
+
       if (!user) return;
 
-      const updates = {};
-      const newUsername = document.getElementById("editUsername").value;
-      const name = document.getElementById("editName").value;
-      const age = document.getElementById("editAge").value;
-      const gender = document.getElementById("editGender").value;
-      const bio = document.getElementById("editBio").value;
-      const profilePicUrl = document.getElementById("editProfilePicUrl").value;
+      if (newUsername.length >= 6) {
+        db.ref("users/" + user.uid).update({ username: newUsername });
+        document.getElementById("viewUsername").textContent = newUsername;
+      }
 
-      if (newUsername.length >= 6) updates.username = newUsername;
-      if (name) updates.name = name;
-      if (age) updates.age = age;
-      if (gender) updates.gender = gender;
-      if (bio) updates.bio = bio;
-      if (profilePicUrl) updates.profilePic = profilePicUrl;
-
-      db.ref("users/" + user.uid).update(updates);
-      if (profilePicUrl) {
-        document.getElementById("profileImage").src = profilePicUrl;
+      if (file) {
+        const storageRef = storage.ref("profilePics/" + user.uid);
+        storageRef.put(file).then(() => {
+          storageRef.getDownloadURL().then(url => {
+            db.ref("users/" + user.uid).update({ profilePic: url });
+            document.getElementById("profileImage").src = url;
+          });
+        });
       }
 
       document.getElementById("editProfileForm").classList.add("hidden");
@@ -206,13 +209,9 @@
         document.getElementById("profileView").classList.remove("hidden");
 
         db.ref("users/" + user.uid).once("value").then(snapshot => {
-          const data = snapshot.val() || {};
+          const data = snapshot.val();
           document.getElementById("viewUsername").textContent = data.username || "";
           document.getElementById("viewEmail").textContent = data.email || "";
-          document.getElementById("viewName").textContent = data.name || "";
-          document.getElementById("viewAge").textContent = data.age || "";
-          document.getElementById("viewGender").textContent = data.gender || "";
-          document.getElementById("viewBio").textContent = data.bio || "";
           if (data.profilePic) {
             document.getElementById("profileImage").src = data.profilePic;
           }

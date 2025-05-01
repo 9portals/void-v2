@@ -13,10 +13,16 @@
   <input type="file" id="fileInput" />
   <br><br>
   <button onclick="uploadImage()">Upload</button>
-  <p id="status">Status: Ready</p>
+  <p id="status" style="white-space: pre-line; font-family: monospace;">Status: Ready</p>
   <img id="preview" src="" style="display:none; max-width:200px; margin-top:20px;" />
 
   <script>
+    const status = document.getElementById('status');
+    function updateStatus(msg) {
+      console.log(msg);
+      status.textContent = "Status: " + msg;
+    }
+
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
       authDomain: "void-d9ec4.firebaseapp.com",
@@ -29,47 +35,52 @@
 
     firebase.initializeApp(firebaseConfig);
 
-    const status = document.getElementById('status');
+    updateStatus("Initializing...");
 
     firebase.auth().signInWithEmailAndPassword('florisveen@gmail.com', '42884288')
       .then(userCredential => {
-        status.textContent = "Signed in as: " + userCredential.user.email;
+        const user = userCredential.user;
+        updateStatus("Signed in as: " + user.email);
       })
       .catch(error => {
-        status.textContent = "Login failed: " + error.message;
+        updateStatus("Login failed: " + error.message);
       });
 
     function uploadImage() {
       const file = document.getElementById('fileInput').files[0];
       if (!file) {
-        status.textContent = "Please choose a file.";
+        updateStatus("No file selected.");
         return;
       }
 
       const user = firebase.auth().currentUser;
       if (!user) {
-        status.textContent = "User not signed in.";
+        updateStatus("User not signed in.");
         return;
       }
 
-      status.textContent = "Uploading...";
-      const storageRef = firebase.storage().ref('profilePictures/' + user.uid + '.jpg');
+      updateStatus("Uploading...");
 
-      storageRef.put(file).then(snapshot => {
-        return snapshot.ref.getDownloadURL();
-      }).then(downloadURL => {
-        // Save the download URL in Realtime Database
-        return firebase.database().ref('users/' + user.uid).update({
-          profilePicture: downloadURL
-        }).then(() => {
-          status.textContent = "Upload successful!";
-          const img = document.getElementById('preview');
-          img.src = downloadURL;
-          img.style.display = 'block';
+      const storageRef = firebase.storage().ref('profilePictures/' + user.uid + '.jpg');
+      storageRef.put(file)
+        .then(snapshot => {
+          updateStatus("Upload complete. Getting download URL...");
+          return snapshot.ref.getDownloadURL();
+        })
+        .then(downloadURL => {
+          updateStatus("Download URL: " + downloadURL + "\nUpdating profile in database...");
+          return firebase.database().ref('users/' + user.uid).update({
+            profilePicture: downloadURL
+          }).then(() => {
+            updateStatus("Upload successful!\nURL saved in database.");
+            const img = document.getElementById('preview');
+            img.src = downloadURL;
+            img.style.display = 'block';
+          });
+        })
+        .catch(error => {
+          updateStatus("Upload failed: " + error.message);
         });
-      }).catch(error => {
-        status.textContent = "Upload failed: " + error.message;
-      });
     }
   </script>
 

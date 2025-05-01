@@ -3,13 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Account - VOID</title>
+  <title>VOID Accounts</title>
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background-color: black;
       color: white;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
     }
 
     header {
@@ -47,13 +51,26 @@
       text-decoration: underline;
     }
 
-    #accountContainer {
-      text-align: center;
-      padding: 30px;
+    #postContainer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      background-color: #111;
+      border-bottom: 1px solid #333;
     }
 
-    button {
-      margin: 10px;
+    #postInput {
+      width: 60%;
+      padding: 10px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background-color: #111;
+      color: white;
+      margin-right: 10px;
+    }
+
+    #postButton {
       padding: 10px 20px;
       border: none;
       background-color: #333;
@@ -62,8 +79,31 @@
       border-radius: 4px;
     }
 
-    button:hover {
+    #postButton:hover {
       background-color: #555;
+    }
+
+    #posts {
+      flex: 1;
+      padding: 10px 20px;
+      overflow-y: auto;
+    }
+
+    .post {
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #222;
+      border-radius: 5px;
+    }
+
+    .username {
+      font-weight: bold;
+      color: #4da6ff;
+      cursor: pointer;
+    }
+
+    .username:hover {
+      text-decoration: underline;
     }
   </style>
 
@@ -87,17 +127,12 @@
     <div onclick="alert('Coming soon')">System Core</div>
   </div>
 
-  <div id="accountContainer">
-    <div id="userStatus"></div>
-    <div id="authButtons">
-      <button onclick="location.href='login.html'">Log In</button>
-      <button onclick="location.href='signup.html'">Sign Up</button>
-    </div>
-    <div id="profileButtons" style="display:none;">
-      <button onclick="location.href='edit-profile.html'">Edit Profile</button>
-      <button onclick="logout()">Log Out</button>
-    </div>
+  <div id="postContainer">
+    <input type="text" id="postInput" placeholder="Say something as yourself..." />
+    <button id="postButton">Post</button>
   </div>
+
+  <div id="posts"></div>
 
   <script>
     function toggleNav() {
@@ -114,29 +149,57 @@
       messagingSenderId: "267268035851",
       appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
     };
-
     firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
     const auth = firebase.auth();
 
-    auth.onAuthStateChanged(user => {
-      const userStatus = document.getElementById("userStatus");
-      const authButtons = document.getElementById("authButtons");
-      const profileButtons = document.getElementById("profileButtons");
+    const postInput = document.getElementById("postInput");
+    const postButton = document.getElementById("postButton");
+    const postsDiv = document.getElementById("posts");
 
-      if (user) {
-        userStatus.textContent = "Logged in as: " + (user.email || "User");
-        authButtons.style.display = "none";
-        profileButtons.style.display = "block";
-      } else {
-        userStatus.textContent = "You are not logged in.";
-        authButtons.style.display = "block";
-        profileButtons.style.display = "none";
-      }
+    function renderPost(postData) {
+      const div = document.createElement("div");
+      div.className = "post";
+      const userLink = document.createElement("span");
+      userLink.className = "username";
+      userLink.textContent = postData.username || "Unknown";
+      userLink.onclick = () => {
+        location.href = `view-profile.html?username=${encodeURIComponent(postData.username)}`;
+      };
+
+      const text = document.createElement("span");
+      text.textContent = `: ${postData.text}`;
+      div.appendChild(userLink);
+      div.appendChild(text);
+      postsDiv.prepend(div);
+    }
+
+    db.ref("userPosts").on("child_added", snapshot => {
+      renderPost(snapshot.val());
     });
 
-    function logout() {
-      firebase.auth().signOut();
-    }
+    postButton.onclick = () => {
+      const user = auth.currentUser;
+      const text = postInput.value.trim();
+      if (!user) {
+        alert("You must be logged in to post.");
+        return;
+      }
+      if (text === "") return;
+
+      const uid = user.uid;
+      db.ref("users/" + uid).once("value").then(snapshot => {
+        const userData = snapshot.val();
+        const username = userData?.username || "Anonymous";
+        const post = {
+          username: username,
+          text: text,
+          timestamp: Date.now()
+        };
+        db.ref("userPosts").push(post);
+        postInput.value = "";
+      });
+    };
   </script>
 </body>
 </html>

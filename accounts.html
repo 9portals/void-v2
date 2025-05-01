@@ -2,42 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Firebase Upload Test</title>
+  <title>Base64 Firebase Upload</title>
   <style>
-    body {
-      background-color: black;
-      color: white;
-      font-family: sans-serif;
-      text-align: center;
-      padding: 2em;
-    }
-    input, button {
-      margin: 1em;
-    }
+    body { background-color: black; color: white; text-align: center; padding: 2em; font-family: sans-serif; }
+    input, button { margin: 1em; }
   </style>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 </head>
 <body>
-  <h1>Firebase Image Upload Test</h1>
+  <h1>Base64 Upload (CORS Bypass)</h1>
 
   <input type="file" id="fileInput" accept="image/*"><br>
-  <button onclick="uploadImage()">Upload</button>
+  <button onclick="uploadBase64()">Upload</button>
 
   <p id="status"></p>
 
   <script>
-    // Step 1: Unregister any service workers
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) {
-          console.log('Unregistering SW:', registration.scope);
-          registration.unregister();
-        }
-      });
-    }
-
-    // Step 2: Initialize Firebase
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
       authDomain: "void-d9ec4.firebaseapp.com",
@@ -50,8 +32,7 @@
     firebase.initializeApp(firebaseConfig);
     const storage = firebase.storage();
 
-    // Step 3: Upload Logic
-    function uploadImage() {
+    function uploadBase64() {
       const fileInput = document.getElementById('fileInput');
       const status = document.getElementById('status');
 
@@ -61,27 +42,34 @@
       }
 
       const file = fileInput.files[0];
-      const storageRef = storage.ref('testUploads/' + Date.now() + '_' + file.name);
+      const reader = new FileReader();
 
-      const uploadTask = storageRef.put(file);
+      reader.onloadend = function () {
+        const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
+        const filePath = 'testBase64/' + Date.now() + '_' + file.name;
+        const metadata = { contentType: file.type };
 
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-          status.textContent = 'Uploading: ' + percent + '%';
-        },
-        (error) => {
-          console.error('Upload failed:', error);
-          status.textContent = 'Upload failed: ' + error.message;
-        },
-        () => {
-          uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-            console.log('File available at:', downloadURL);
-            status.innerHTML = 'Upload success!<br><a href="' + downloadURL + '" target="_blank">View Image</a>';
-          });
-        }
-      );
+        const uploadTask = storage.ref(filePath).putString(base64String, 'base64', metadata);
+
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+            status.textContent = 'Uploading: ' + percent + '%';
+          },
+          (error) => {
+            console.error('Upload failed:', error);
+            status.textContent = 'Upload failed: ' + error.message;
+          },
+          () => {
+            uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+              status.innerHTML = 'Success!<br><a href="' + url + '" target="_blank">View Image</a>';
+            });
+          }
+        );
+      };
+
+      reader.readAsDataURL(file);
     }
   </script>
 </body>

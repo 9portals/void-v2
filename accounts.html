@@ -1,1 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Firebase Upload Test</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getStorage, ref, uploadBytes, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
+      authDomain: "void-d9ec4.firebaseapp.com",
+      projectId: "void-d9ec4",
+      storageBucket: "void-d9ec4.appspot.com",
+      messagingSenderId: "267268035851",
+      appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const storage = getStorage(app);
+
+    const statusEl = document.getElementById("status");
+    const previewEl = document.getElementById("preview");
+
+    function isMobile() {
+      return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+
+    let currentUser = null;
+
+    signInWithEmailAndPassword(auth, "florisveen@gmail.com", "42884288")
+      .then((userCredential) => {
+        currentUser = userCredential.user;
+        statusEl.textContent = "Signed in as " + currentUser.email;
+      })
+      .catch((error) => {
+        alert("Login failed: " + error.message);
+        statusEl.textContent = "Login failed: " + error.message;
+      });
+
+    document.getElementById("fileInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function (event) {
+        const dataUrl = event.target.result;
+        previewEl.src = dataUrl;
+        statusEl.textContent = isMobile() ? "Mobile detected. Uploading..." : "Desktop. Uploading...";
+
+        try {
+          const path = isMobile()
+            ? 'publicUploads/' + file.name
+            : 'profilePictures/' + currentUser.uid + '.jpg';
+
+          const storageRef = ref(storage, path);
+
+          if (isMobile()) {
+            await uploadString(storageRef, dataUrl, 'data_url');
+          } else {
+            await uploadBytes(storageRef, file);
+          }
+
+          const url = await getDownloadURL(storageRef);
+          statusEl.textContent = "Upload successful! URL: " + url;
+        } catch (error) {
+          alert("Upload failed: " + error.message);
+          statusEl.textContent = "Upload failed: " + error.message;
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</head>
+<body style="background:black; color:white; font-family:sans-serif; text-align:center; padding-top:50px;">
+  <h1>Firebase Upload Test</h1>
+  <input type="file" id="fileInput"><br><br>
+  <img id="preview" src="" style="max-width:200px; display:block; margin:auto;"><br>
+  <p id="status">Waiting for login...</p>
+</body>
+</html>

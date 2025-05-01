@@ -25,15 +25,11 @@
       margin-top: 30px;
     }
 
-    input, button, textarea, select {
+    input, button, select, textarea {
       margin: 5px;
       padding: 10px;
       border: none;
       border-radius: 4px;
-    }
-
-    textarea {
-      resize: vertical;
     }
 
     button {
@@ -96,7 +92,7 @@
 
   <div id="profileView" class="hidden">
     <h2>Your Profile</h2>
-    <img id="profileImage" class="profile-pic" src="" alt="Profile Picture"><br>
+    <img id="profileImage" class="profile-pic" src="https://via.placeholder.com/100?text=VOID" alt="Profile Picture"><br>
     <p><strong>Username:</strong> <span id="viewUsername"></span></p>
     <p><strong>Email:</strong> <span id="viewEmail"></span></p>
     <p><strong>Name:</strong> <span id="viewName"></span></p>
@@ -114,13 +110,14 @@
     <input type="number" id="editAge" placeholder="Age"><br>
     <select id="editGender">
       <option value="">Select Gender</option>
-      <option value="Male">Male</option>
-      <option value="Female">Female</option>
-      <option value="Other">Other</option>
+      <option>Male</option>
+      <option>Female</option>
+      <option>Other</option>
     </select><br>
-    <textarea id="editBio" placeholder="Bio"></textarea><br>
-    <input type="file" id="profilePicInput" accept="image/*" capture="environment"><br>
+    <textarea id="editBio" placeholder="Your bio..."></textarea><br>
+    <input type="file" id="profilePicInput" accept="image/*"><br>
     <button onclick="saveProfile()">Save</button>
+    <button onclick="removeProfilePicture()">Remove Profile Picture</button>
   </div>
 
   <script>
@@ -131,7 +128,8 @@
       projectId: "void-d9ec4",
       storageBucket: "void-d9ec4.appspot.com",
       messagingSenderId: "267268035851",
-      appId: "1:267268035851:web:d535fe4175c06f170f3e0e"
+      appId: "1:267268035851:web:d535fe4175c06f170f3e0e",
+      measurementId: "G-78DGNW8HV3"
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
@@ -177,18 +175,29 @@
       document.getElementById("editProfileForm").classList.remove("hidden");
     }
 
+    document.getElementById("profilePicInput").addEventListener("change", function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById("profileImage").src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
     function saveProfile() {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const updates = {};
       const newUsername = document.getElementById("editUsername").value;
       const name = document.getElementById("editName").value;
       const age = document.getElementById("editAge").value;
       const gender = document.getElementById("editGender").value;
       const bio = document.getElementById("editBio").value;
       const file = document.getElementById("profilePicInput").files[0];
-      const user = auth.currentUser;
 
-      if (!user) return;
-
-      const updates = {};
       if (newUsername.length >= 6) updates.username = newUsername;
       if (name) updates.name = name;
       if (age) updates.age = age;
@@ -200,28 +209,21 @@
       if (file) {
         const storageRef = storage.ref("profilePics/" + user.uid);
         storageRef.put(file).then(() => {
-          storageRef.getDownloadURL().then(url => {
-            db.ref("users/" + user.uid).update({ profilePic: url });
-            document.getElementById("profileImage").src = url;
-          });
+          return storageRef.getDownloadURL();
+        }).then(url => {
+          db.ref("users/" + user.uid).update({ profilePic: url });
+          document.getElementById("profileImage").src = url;
         });
       }
 
       document.getElementById("editProfileForm").classList.add("hidden");
-      loadProfile(user.uid);
     }
 
-    function loadProfile(uid) {
-      db.ref("users/" + uid).once("value").then(snapshot => {
-        const data = snapshot.val() || {};
-        document.getElementById("viewUsername").textContent = data.username || "";
-        document.getElementById("viewEmail").textContent = data.email || "";
-        document.getElementById("viewName").textContent = data.name || "-";
-        document.getElementById("viewAge").textContent = data.age || "-";
-        document.getElementById("viewGender").textContent = data.gender || "-";
-        document.getElementById("viewBio").textContent = data.bio || "-";
-        document.getElementById("profileImage").src = data.profilePic || "https://via.placeholder.com/100?text=VOID";
-      });
+    function removeProfilePicture() {
+      const user = auth.currentUser;
+      if (!user) return;
+      db.ref("users/" + user.uid).update({ profilePic: null });
+      document.getElementById("profileImage").src = "https://via.placeholder.com/100?text=VOID";
     }
 
     auth.onAuthStateChanged(user => {
@@ -229,7 +231,19 @@
         document.getElementById("authForms").classList.add("hidden");
         document.getElementById("signupForm").classList.add("hidden");
         document.getElementById("profileView").classList.remove("hidden");
-        loadProfile(user.uid);
+
+        db.ref("users/" + user.uid).once("value").then(snapshot => {
+          const data = snapshot.val() || {};
+          document.getElementById("viewUsername").textContent = data.username || "";
+          document.getElementById("viewEmail").textContent = data.email || "";
+          document.getElementById("viewName").textContent = data.name || "";
+          document.getElementById("viewAge").textContent = data.age || "";
+          document.getElementById("viewGender").textContent = data.gender || "";
+          document.getElementById("viewBio").textContent = data.bio || "";
+          if (data.profilePic) {
+            document.getElementById("profileImage").src = data.profilePic;
+          }
+        });
       }
     });
   </script>

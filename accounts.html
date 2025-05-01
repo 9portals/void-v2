@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Firebase Debug Upload (Non-Resumable)</title>
+  <title>Upload Test via Input</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
@@ -20,31 +20,45 @@
     const auth = getAuth(app);
     const storage = getStorage(app);
     const statusEl = document.getElementById("status");
+    const fileInput = document.getElementById("fileInput");
 
-    async function uploadTestBlob() {
-      try {
-        statusEl.textContent = "Logging in...";
-        const userCredential = await signInWithEmailAndPassword(auth, "florisveen@gmail.com", "42884288");
-        const user = userCredential.user;
+    let currentUser = null;
 
-        const blob = new Blob(["Hello World"], { type: "text/plain" });
-        const storageRef = ref(storage, 'testUploads/' + user.uid + '_test_simple.txt');
+    signInWithEmailAndPassword(auth, "florisveen@gmail.com", "42884288")
+      .then((userCredential) => {
+        currentUser = userCredential.user;
+        statusEl.textContent = "Logged in. Choose a file to upload.";
+      })
+      .catch((err) => {
+        statusEl.textContent = "Login failed: " + err.message;
+      });
 
-        statusEl.textContent = "Uploading blob...";
-        await uploadBytes(storageRef, blob);
-
-        statusEl.textContent = "Upload complete!";
-      } catch (error) {
-        console.error("Upload failed:", error);
-        statusEl.textContent = "Upload failed: " + error.message;
+    fileInput.addEventListener("change", async (e) => {
+      if (!currentUser) {
+        statusEl.textContent = "Not logged in.";
+        return;
       }
-    }
 
-    uploadTestBlob();
+      const file = e.target.files[0];
+      if (!file) return;
+
+      statusEl.textContent = "Uploading " + file.name + "...";
+
+      const storageRef = ref(storage, "testUploads/" + currentUser.uid + "_" + file.name);
+
+      try {
+        await uploadBytes(storageRef, file);
+        statusEl.textContent = "Upload complete!";
+      } catch (err) {
+        console.error("Upload failed", err);
+        statusEl.textContent = "Upload failed: " + err.message;
+      }
+    });
   </script>
 </head>
-<body style="background:black; color:white; text-align:center; padding-top:50px; font-family:sans-serif;">
-  <h1>Firebase Upload Test (Simple)</h1>
+<body style="background:black; color:white; text-align:center; padding-top:40px; font-family:sans-serif;">
+  <h1>Firebase Upload Test</h1>
   <p id="status">Initializing...</p>
+  <input type="file" id="fileInput" style="margin-top:20px;" />
 </body>
 </html>

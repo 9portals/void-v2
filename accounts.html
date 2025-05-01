@@ -5,7 +5,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getStorage, ref, uploadBytes, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
@@ -23,12 +23,9 @@
     const statusEl = document.getElementById("status");
     const previewEl = document.getElementById("preview");
 
-    function isMobile() {
-      return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    }
-
     let currentUser = null;
 
+    // Login
     signInWithEmailAndPassword(auth, "florisveen@gmail.com", "42884288")
       .then((userCredential) => {
         currentUser = userCredential.user;
@@ -39,6 +36,7 @@
         statusEl.textContent = "Login failed: " + error.message;
       });
 
+    // Upload Handler
     document.getElementById("fileInput").addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -47,21 +45,23 @@
       reader.onload = async function (event) {
         const dataUrl = event.target.result;
         previewEl.src = dataUrl;
-        statusEl.textContent = isMobile() ? "Mobile detected. Uploading..." : "Desktop. Uploading...";
+        statusEl.textContent = "Uploading...";
 
         try {
-          const path = isMobile()
-            ? 'publicUploads/' + file.name
-            : 'profilePictures/' + currentUser.uid + '.jpg';
+          const storageRef = ref(storage, 'profilePictures/' + currentUser.uid + '.jpg');
 
-          const storageRef = ref(storage, path);
-
-          if (isMobile()) {
-            await uploadString(storageRef, dataUrl, 'data_url');
-          } else {
-            await uploadBytes(storageRef, file);
+          // Convert dataURL to Blob
+          function dataURLtoBlob(dataurl) {
+            const arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                  bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+            for (let i = 0; i < n; i++) {
+                u8arr[i] = bstr.charCodeAt(i);
+            }
+            return new Blob([u8arr], { type: mime });
           }
 
+          const blob = dataURLtoBlob(dataUrl);
+          await uploadBytes(storageRef, blob);
           const url = await getDownloadURL(storageRef);
           statusEl.textContent = "Upload successful! URL: " + url;
         } catch (error) {

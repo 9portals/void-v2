@@ -67,7 +67,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -115,9 +114,8 @@
       <option>Other</option>
     </select><br>
     <textarea id="editBio" placeholder="Your bio..."></textarea><br>
-    <input type="file" id="profilePicInput" accept="image/*"><br>
+    <input type="url" id="editProfilePicUrl" placeholder="Profile picture URL"><br>
     <button onclick="saveProfile()">Save</button>
-    <button onclick="removeProfilePicture()">Remove Profile Picture</button>
   </div>
 
   <script>
@@ -134,7 +132,6 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
-    const storage = firebase.storage();
 
     function toggleForm() {
       document.getElementById('authForms').classList.toggle('hidden');
@@ -175,17 +172,6 @@
       document.getElementById("editProfileForm").classList.remove("hidden");
     }
 
-    document.getElementById("profilePicInput").addEventListener("change", function(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          document.getElementById("profileImage").src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
     function saveProfile() {
       const user = auth.currentUser;
       if (!user) return;
@@ -196,34 +182,21 @@
       const age = document.getElementById("editAge").value;
       const gender = document.getElementById("editGender").value;
       const bio = document.getElementById("editBio").value;
-      const file = document.getElementById("profilePicInput").files[0];
+      const profilePicUrl = document.getElementById("editProfilePicUrl").value;
 
       if (newUsername.length >= 6) updates.username = newUsername;
       if (name) updates.name = name;
       if (age) updates.age = age;
       if (gender) updates.gender = gender;
       if (bio) updates.bio = bio;
+      if (profilePicUrl) updates.profilePic = profilePicUrl;
 
       db.ref("users/" + user.uid).update(updates);
-
-      if (file) {
-        const storageRef = storage.ref("profilePics/" + user.uid);
-        storageRef.put(file).then(() => {
-          return storageRef.getDownloadURL();
-        }).then(url => {
-          db.ref("users/" + user.uid).update({ profilePic: url });
-          document.getElementById("profileImage").src = url;
-        });
+      if (profilePicUrl) {
+        document.getElementById("profileImage").src = profilePicUrl;
       }
 
       document.getElementById("editProfileForm").classList.add("hidden");
-    }
-
-    function removeProfilePicture() {
-      const user = auth.currentUser;
-      if (!user) return;
-      db.ref("users/" + user.uid).update({ profilePic: null });
-      document.getElementById("profileImage").src = "https://via.placeholder.com/100?text=VOID";
     }
 
     auth.onAuthStateChanged(user => {

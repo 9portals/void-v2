@@ -1,74 +1,95 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Profiles - VOID</title>
   <style>
     body {
       background-color: black;
       color: white;
-      font-family: monospace;
+      font-family: sans-serif;
       margin: 0;
+      padding: 0;
     }
     header {
-      background-color: #111;
+      background: #111;
       padding: 10px;
       display: flex;
       justify-content: space-between;
-      border-bottom: 1px solid #333;
+      align-items: center;
     }
-    .nav a {
+    nav a {
       color: white;
       margin: 0 10px;
       text-decoration: none;
-      border: 1px solid white;
-      padding: 4px 8px;
     }
-    .profile-card {
-      border: 1px solid white;
-      margin: 10px;
+    .user-list {
+      padding: 20px;
+    }
+    .user-card {
+      border: 1px solid #444;
+      padding: 10px;
+      margin-bottom: 10px;
+      background-color: #222;
+      cursor: pointer;
+    }
+    .online {
+      color: lime;
+    }
+    .offline {
+      color: red;
+    }
+    .dm-box {
+      margin-top: 10px;
+      background: #333;
       padding: 10px;
     }
-    .online { color: lightgreen; }
-    .offline { color: red; }
-    button {
-      margin-right: 10px;
+    .notification {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #0a0;
+      color: #fff;
+      padding: 10px;
+      border-radius: 5px;
+      display: none;
     }
   </style>
 </head>
 <body>
   <header>
-    <div><b>VOID</b></div>
-    <div class="nav">
-      <a href="index.html">Home</a>
-      <a href="accounts.html">Profile</a>
-      <a href="profiles.html">View Profiles</a>
-      <a href="echoes.html">Echoes</a>
-      <a href="messages.html">Messages</a>
-      <a href="#" onclick="logout()">Logout</a>
+    <div>
+      <strong>VOID</strong>
     </div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="accounts.html">My Profile</a>
+      <a href="echoes.html">Echoes</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </nav>
   </header>
 
-  <main>
-    <h2 style="text-align:center;">All Profiles</h2>
-    <div id="profilesContainer"></div>
-  </main>
+  <div class="user-list" id="userList"></div>
+  <div class="notification" id="notification"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      onValue,
+      set,
+      update,
+      get,
+      push,
+      remove
+    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
     import {
       getAuth,
       onAuthStateChanged,
       signOut
     } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-    import {
-      getDatabase,
-      ref,
-      onValue,
-      update,
-      set,
-      push
-    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
@@ -82,21 +103,31 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth();
-    const db = getDatabase();
+    const db = getDatabase(app);
+    const auth = getAuth(app);
 
-    let currentUser = null;
-    let currentUserData = null;
+    const userList = document.getElementById("userList");
+    const notification = document.getElementById("notification");
 
-    onAuthStateChanged(auth, user => {
+    function showNotification(msg) {
+      notification.textContent = msg;
+      notification.style.display = 'block';
+      setTimeout(() => {
+        notification.style.display = 'none';
+      }, 3000);
+    }
+
+    let currentUserId = null;
+
+    onAuthStateChanged(auth, (user) => {
       if (user) {
-        currentUser = user;
-        loadProfiles();
-        onValue(ref(db, `users/${user.uid}`), snap => {
-          currentUserData = snap.val();
+        currentUserId = user.uid;
+        loadUsers();
+        update(ref(db, `users/${user.uid}`), {
+          lastOnline: Date.now()
         });
       } else {
-        window.location.href = "index.html";
+        window.location.href = "accounts.html";
       }
     });
 
@@ -104,67 +135,94 @@
       signOut(auth);
     }
 
-    function loadProfiles() {
+    function loadUsers() {
       onValue(ref(db, 'users'), snapshot => {
-        const users = snapshot.val();
-        const list = Object.entries(users || {}).filter(([uid]) => uid !== currentUser.uid);
-        const sorted = list.sort((a, b) => (b[1].online || 0) - (a[1].online || 0));
+        const users = [];
+        snapshot.forEach(child => {
+          const data = child.val();
+          data.uid = child.key;
+          users.push(data);
+        });
 
-        const container = document.getElementById('profilesContainer');
-        container.innerHTML = "";
+        users.sort((a, b) => {
+          const onlineA = Date.now() - (a.lastOnline || 0) < 60000;
+          const onlineB = Date.now() - (b.lastOnline || 0) < 60000;
+          if (onlineA && !onlineB) return -1;
+          if (!onlineA && onlineB) return 1;
+          return (b.lastOnline || 0) - (a.lastOnline || 0);
+        });
 
-        const seen = new Set();
+        userList.innerHTML = "";
+        const rendered = new Set();
 
-        for (const [uid, data] of sorted) {
-          if (seen.has(uid)) continue;
-          seen.add(uid);
+        users.forEach(user => {
+          if (rendered.has(user.uid)) return;
+          if (user.uid === currentUserId) return;
 
-          const card = document.createElement('div');
-          card.className = 'profile-card';
+          rendered.add(user.uid);
 
-          const status = data.online && (Date.now() - data.online < 30000) ? 'online' : 'offline';
-          const isFollowing = currentUserData?.following?.[uid];
-
+          const isOnline = Date.now() - (user.lastOnline || 0) < 60000;
+          const card = document.createElement("div");
+          card.className = "user-card";
           card.innerHTML = `
-            <div><b>${data.username || "Unnamed"}</b> - <span class="${status}">${status}</span></div>
-            <div>${data.bio || "No bio"}</div>
-            <div>Age: ${data.age || "?"} | Gender: ${data.gender || "?"}</div>
-            <img src="${data.profilePic || ''}" style="max-width:100px;max-height:100px;"><br/>
+            <strong>${user.username || "Unnamed"}</strong>
+            <span class="${isOnline ? 'online' : 'offline'}">
+              ${isOnline ? "Online" : "Offline"}
+            </span>
+            <div>
+              <button onclick="viewProfile('${user.uid}')">View</button>
+              <button onclick="toggleFollow('${user.uid}', this)">Follow</button>
+              <button onclick="openDM('${user.uid}')">DM</button>
+            </div>
+            <div class="dm-box" id="dm-${user.uid}" style="display:none;">
+              <textarea id="msg-${user.uid}" placeholder="Your message..."></textarea>
+              <button onclick="sendDM('${user.uid}')">Send</button>
+            </div>
           `;
-
-          const followBtn = document.createElement('button');
-          followBtn.textContent = isFollowing ? "Unfollow" : "Follow";
-          followBtn.onclick = () => {
-            const updates = {};
-            updates[`users/${currentUser.uid}/following/${uid}`] = isFollowing ? null : true;
-            updates[`users/${uid}/followers/${currentUser.uid}`] = isFollowing ? null : true;
-            update(ref(db), updates);
-          };
-
-          const dmBtn = document.createElement('button');
-          dmBtn.textContent = "Send DM";
-          dmBtn.onclick = () => {
-            const msg = prompt("Enter your message:");
-            if (msg) {
-              const dmRef = push(ref(db, 'dms'));
-              set(dmRef, {
-                from: currentUser.uid,
-                to: uid,
-                message: msg,
-                createdAt: Date.now(),
-                displayName: currentUserData?.username || "User"
-              }).then(() => {
-                alert("DM sent! It will expire in 1 hour.");
-              });
-            }
-          };
-
-          card.appendChild(followBtn);
-          card.appendChild(dmBtn);
-          container.appendChild(card);
-        }
+          userList.appendChild(card);
+        });
       });
     }
+
+    window.toggleFollow = function(uid, btn) {
+      const path = `follows/${currentUserId}/${uid}`;
+      get(ref(db, path)).then(snapshot => {
+        if (snapshot.exists()) {
+          remove(ref(db, path));
+          btn.textContent = "Follow";
+          showNotification("Unfollowed");
+        } else {
+          set(ref(db, path), true);
+          showNotification("Followed");
+          btn.textContent = "Unfollow";
+        }
+      });
+    };
+
+    window.viewProfile = function(uid) {
+      window.location.href = `accounts.html?uid=${uid}`;
+    };
+
+    window.openDM = function(uid) {
+      const box = document.getElementById(`dm-${uid}`);
+      box.style.display = box.style.display === "none" ? "block" : "none";
+    };
+
+    window.sendDM = function(uid) {
+      const msgBox = document.getElementById(`msg-${uid}`);
+      const text = msgBox.value.trim();
+      if (!text) return;
+      const dmRef = push(ref(db, `messages/${uid}`));
+      const id = dmRef.key;
+      set(dmRef, {
+        from: currentUserId,
+        text,
+        timestamp: Date.now(),
+        expiresAt: Date.now() + 3600000
+      });
+      msgBox.value = "";
+      showNotification("DM sent!");
+    };
   </script>
 </body>
 </html>

@@ -80,10 +80,6 @@
       display: none;
     }
 
-    .profile-section {
-      margin-top: 20px;
-    }
-
     img {
       max-width: 100px;
       border-radius: 50%;
@@ -105,43 +101,44 @@
   </header>
 
   <div id="navMenu">
-    <div onclick="location.href='index.html'">Enter the Abyss</div>
-    <div onclick="location.href='echoes.html'">Echoes</div>
-    <div onclick="location.href='accounts.html'">Account</div>
-    <div onclick="alert('Coming soon')">Dark Messenger</div>
-    <div onclick="alert('Coming soon')">System Core</div>
+    <div onclick="location.href='index.html'">⟁ Enter the Abyss</div>
+    <div onclick="location.href='echoes.html'">⟁ Echoes</div>
+    <div onclick="location.href='accounts.html'">⟁ Account</div>
+    <div onclick="alert('Coming soon')">⟁ Dark Messenger</div>
+    <div onclick="alert('Coming soon')">⟁ System Core</div>
   </div>
 
   <div class="container">
     <div id="authSection">
-      <button onclick="toggleAuth()">Switch to Sign Up</button>
+      <button onclick="toggleAuth()">⟳ Switch to Sign Up</button>
       <div id="loginForm">
         <h2>Login</h2>
         <input type="email" id="loginEmail" placeholder="Email"><br>
         <input type="password" id="loginPassword" placeholder="Password"><br>
-        <button onclick="login()">Login</button>
+        <button onclick="login()">→ Login</button>
       </div>
 
       <div id="signupForm" class="hidden">
         <h2>Sign Up</h2>
-        <input type="text" id="signupUsername" placeholder="Username"><br>
+        <input type="text" id="signupUsername" placeholder="Username (min 6 chars)"><br>
         <input type="email" id="signupEmail" placeholder="Email"><br>
-        <input type="password" id="signupPassword" placeholder="Password"><br>
-        <button onclick="signup()">Sign Up</button>
+        <input type="password" id="signupPassword" placeholder="Password (min 8 chars)"><br>
+        <button onclick="signup()">→ Sign Up</button>
       </div>
     </div>
 
     <div id="profileSection" class="hidden">
       <h2>Your Profile</h2>
       <p><strong>Email:</strong> <span id="userEmail"></span></p>
+      <p><strong>Username:</strong> <span id="userUsername"></span></p>
       <input type="text" id="profileName" placeholder="Name"><br>
       <input type="number" id="profileAge" placeholder="Age"><br>
       <input type="text" id="profileGender" placeholder="Gender"><br>
       <textarea id="profileBio" placeholder="Bio"></textarea><br>
       <input type="file" id="profilePicture"><br>
       <img id="previewPic" src="#" class="hidden"><br>
-      <button onclick="saveProfile()">Save Profile</button>
-      <button onclick="logout()">Log Out</button>
+      <button onclick="saveProfile()">✓ Save Profile</button>
+      <button onclick="logout()">⇦ Log Out</button>
     </div>
   </div>
 
@@ -173,27 +170,34 @@
       if (login.classList.contains("hidden")) {
         login.classList.remove("hidden");
         signup.classList.add("hidden");
-        toggleBtn.textContent = "Switch to Sign Up";
+        toggleBtn.textContent = "⟳ Switch to Sign Up";
       } else {
         login.classList.add("hidden");
         signup.classList.remove("hidden");
-        toggleBtn.textContent = "Switch to Login";
+        toggleBtn.textContent = "⟳ Switch to Login";
       }
     }
 
     function login() {
       const email = document.getElementById("loginEmail").value;
       const password = document.getElementById("loginPassword").value;
-      auth.signInWithEmailAndPassword(email, password).catch(console.error);
+      auth.signInWithEmailAndPassword(email, password).catch(err => alert(err.message));
     }
 
     function signup() {
-      const username = document.getElementById("signupUsername").value;
-      const email = document.getElementById("signupEmail").value;
+      const username = document.getElementById("signupUsername").value.trim();
+      const email = document.getElementById("signupEmail").value.trim();
       const password = document.getElementById("signupPassword").value;
+
+      if (username.length < 6) return alert("Username must be at least 6 characters");
+      if (password.length < 8) return alert("Password must be at least 8 characters");
+
       auth.createUserWithEmailAndPassword(email, password).then(cred => {
-        db.ref("users/" + cred.user.uid).set({ username });
-      }).catch(console.error);
+        return db.ref("users/" + cred.user.uid).set({
+          username: username,
+          email: email
+        });
+      }).catch(err => alert(err.message));
     }
 
     function logout() {
@@ -217,12 +221,13 @@
       if (picture) {
         const picRef = storage.ref("profilePics/" + uid);
         picRef.put(picture).then(() => {
-          picRef.getDownloadURL().then(url => {
-            userRef.update({ profilePic: url });
-            document.getElementById("previewPic").src = url;
-            document.getElementById("previewPic").classList.remove("hidden");
-          });
-        });
+          return picRef.getDownloadURL();
+        }).then(url => {
+          userRef.update({ profilePic: url });
+          const pic = document.getElementById("previewPic");
+          pic.src = url;
+          pic.classList.remove("hidden");
+        }).catch(err => alert("Error uploading picture: " + err.message));
       }
     }
 
@@ -237,8 +242,8 @@
 
         const userRef = db.ref("users/" + user.uid);
         userRef.once("value").then(snapshot => {
-          const data = snapshot.val();
-          if (!data) return;
+          const data = snapshot.val() || {};
+          document.getElementById("userUsername").textContent = data.username || "";
           document.getElementById("profileName").value = data.name || "";
           document.getElementById("profileAge").value = data.age || "";
           document.getElementById("profileGender").value = data.gender || "";

@@ -10,6 +10,9 @@
       text-align: center;
       padding: 20px;
     }
+    #profile {
+      display: none;
+    }
     img {
       max-width: 150px;
       border-radius: 50%;
@@ -20,7 +23,9 @@
 <body>
   <h1>Firebase Upload Test</h1>
 
-  <div id="profile" style="display:none;">
+  <div id="login-status">Logging in...</div>
+
+  <div id="profile">
     <input type="file" id="profilePicInput" accept="image/*"><br><br>
     <button onclick="uploadProfilePicture()">Upload Profile Picture</button>
     <div id="status"></div>
@@ -52,10 +57,12 @@
 
     auth.signInWithEmailAndPassword("florisveen@gmail.com", "42884288")
       .then(() => {
+        document.getElementById('login-status').innerText = "Logged in as florisveen@gmail.com";
         document.getElementById('profile').style.display = 'block';
         loadProfilePicture(auth.currentUser.uid);
       })
       .catch(error => {
+        document.getElementById('login-status').innerText = "Login failed: " + error.message;
         console.error("Login failed:", error.message);
       });
 

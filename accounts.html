@@ -1,25 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Base64 Firebase Upload</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Void — Account</title>
   <style>
-    body { background-color: black; color: white; text-align: center; padding: 2em; font-family: sans-serif; }
-    input, button { margin: 1em; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: black;
+      color: white;
+      text-align: center;
+    }
+
+    header {
+      padding: 20px;
+      background-color: #111;
+      font-size: 28px;
+      font-weight: bold;
+      border-bottom: 1px solid #444;
+    }
+
+    .form-container {
+      margin-top: 30px;
+    }
+
+    input, button {
+      margin: 5px;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+    }
+
+    button {
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #profileView {
+      margin-top: 30px;
+    }
+
+    #editProfileForm {
+      margin-top: 20px;
+    }
+
+    #profilePic {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 50%;
+      margin-top: 10px;
+      border: 2px solid #444;
+    }
   </style>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
 </head>
 <body>
-  <h1>Base64 Upload (CORS Bypass)</h1>
 
-  <input type="file" id="fileInput" accept="image/*"><br>
-  <button onclick="uploadBase64()">Upload</button>
+  <header>VOID — Accounts</header>
 
-  <p id="status"></p>
+  <div class="form-container" id="authForms">
+    <h2 id="formTitle">Login</h2>
+    <input type="email" id="email" placeholder="Email"><br>
+    <input type="password" id="password" placeholder="Password"><br>
+    <button onclick="login()">Login</button>
+    <button onclick="toggleForm()">Switch to Signup</button>
+  </div>
+
+  <div class="form-container hidden" id="signupForm">
+    <h2>Signup</h2>
+    <input type="text" id="signupUsername" placeholder="Username (min 6 chars)"><br>
+    <input type="email" id="signupEmail" placeholder="Email"><br>
+    <input type="password" id="signupPassword" placeholder="Password (min 8 chars)"><br>
+    <input type="text" id="signupPicURL" placeholder="Profile Picture URL"><br>
+    <button onclick="signup()">Signup</button>
+    <button onclick="toggleForm()">Back to Login</button>
+  </div>
+
+  <div id="profileView" class="hidden">
+    <h2>Your Profile</h2>
+    <img id="profilePic" src="" alt="Profile Picture"><br>
+    <p><strong>Username:</strong> <span id="viewUsername"></span></p>
+    <p><strong>Email:</strong> <span id="viewEmail"></span></p>
+    <button onclick="showEditForm()">Edit Profile</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <div id="editProfileForm" class="hidden">
+    <h2>Edit Profile</h2>
+    <input type="text" id="editUsername" placeholder="New Username"><br>
+    <input type="text" id="editPicURL" placeholder="New Profile Picture URL"><br>
+    <button onclick="saveProfile()">Save</button>
+  </div>
 
   <script>
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
       authDomain: "void-d9ec4.firebaseapp.com",
@@ -27,50 +115,87 @@
       projectId: "void-d9ec4",
       storageBucket: "void-d9ec4.appspot.com",
       messagingSenderId: "267268035851",
-      appId: "1:267268035851:web:1e5ab79c51db42160f3e0e",
+      appId: "1:267268035851:web:1e5ab79c51db42160f3e0e"
     };
+
     firebase.initializeApp(firebaseConfig);
-    const storage = firebase.storage();
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-    function uploadBase64() {
-      const fileInput = document.getElementById('fileInput');
-      const status = document.getElementById('status');
+    function toggleForm() {
+      document.getElementById('authForms').classList.toggle('hidden');
+      document.getElementById('signupForm').classList.toggle('hidden');
+    }
 
-      if (!fileInput.files.length) {
-        status.textContent = 'No file selected.';
+    function signup() {
+      const email = document.getElementById('signupEmail').value;
+      const password = document.getElementById('signupPassword').value;
+      const username = document.getElementById('signupUsername').value;
+      const picURL = document.getElementById('signupPicURL').value;
+
+      if (username.length < 6 || password.length < 8) {
+        alert("Username must be at least 6 characters, password at least 8.");
         return;
       }
 
-      const file = fileInput.files[0];
-      const reader = new FileReader();
-
-      reader.onloadend = function () {
-        const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
-        const filePath = 'testBase64/' + Date.now() + '_' + file.name;
-        const metadata = { contentType: file.type };
-
-        const uploadTask = storage.ref(filePath).putString(base64String, 'base64', metadata);
-
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {
-            const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-            status.textContent = 'Uploading: ' + percent + '%';
-          },
-          (error) => {
-            console.error('Upload failed:', error);
-            status.textContent = 'Upload failed: ' + error.message;
-          },
-          () => {
-            uploadTask.snapshot.ref.getDownloadURL().then((url) => {
-              status.innerHTML = 'Success!<br><a href="' + url + '" target="_blank">View Image</a>';
-            });
-          }
-        );
-      };
-
-      reader.readAsDataURL(file);
+      auth.createUserWithEmailAndPassword(email, password).then(userCred => {
+        const uid = userCred.user.uid;
+        db.ref("users/" + uid).set({
+          username: username,
+          email: email,
+          profilePic: picURL
+        });
+      }).catch(err => alert(err.message));
     }
+
+    function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      auth.signInWithEmailAndPassword(email, password).catch(err => alert(err.message));
+    }
+
+    function logout() {
+      auth.signOut();
+      location.reload();
+    }
+
+    function showEditForm() {
+      document.getElementById("editProfileForm").classList.remove("hidden");
+    }
+
+    function saveProfile() {
+      const newUsername = document.getElementById("editUsername").value;
+      const newPicURL = document.getElementById("editPicURL").value;
+      const user = auth.currentUser;
+
+      if (user && newUsername.length >= 6) {
+        const updates = { username: newUsername };
+        if (newPicURL) updates.profilePic = newPicURL;
+
+        db.ref("users/" + user.uid).update(updates);
+        if (newUsername) document.getElementById("viewUsername").textContent = newUsername;
+        if (newPicURL) document.getElementById("profilePic").src = newPicURL;
+        document.getElementById("editProfileForm").classList.add("hidden");
+      } else {
+        alert("Username must be at least 6 characters.");
+      }
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById("authForms").classList.add("hidden");
+        document.getElementById("signupForm").classList.add("hidden");
+        document.getElementById("profileView").classList.remove("hidden");
+
+        db.ref("users/" + user.uid).once("value").then(snapshot => {
+          const data = snapshot.val();
+          document.getElementById("viewUsername").textContent = data.username || "Unknown";
+          document.getElementById("viewEmail").textContent = data.email || "No email";
+          document.getElementById("profilePic").src = data.profilePic || "";
+        });
+      }
+    });
   </script>
 </body>
 </html>

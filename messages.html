@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Messages - VOID</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: monospace;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #111;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #333;
+    }
+    .nav {
+      display: flex;
+      gap: 10px;
+    }
+    .nav a {
+      color: white;
+      text-decoration: none;
+      border: 1px solid white;
+      padding: 4px 8px;
+    }
+    .dm-box {
+      border: 1px solid white;
+      padding: 10px;
+      margin: 10px;
+    }
+    .dm-message {
+      margin: 5px 0;
+    }
+    .dm-message span {
+      font-size: 0.8em;
+      color: gray;
+    }
+    .dm-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 5px;
+    }
+    .countdown {
+      font-size: 0.8em;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo"><b>VOID</b></div>
+    <div class="nav">
+      <a href="index.html">Home</a>
+      <a href="accounts.html">Profile</a>
+      <a href="profiles.html">View Profiles</a>
+      <a href="echoes.html">Echoes</a>
+      <a href="messages.html">Messages</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+  </header>
+
+  <main>
+    <h2 style="text-align:center;">Your Messages</h2>
+    <div id="dmContainer"></div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import {
+      getDatabase,
+      ref,
+      onChildAdded,
+      set,
+      remove,
+      get,
+      child
+    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1YgjFsxh-xZfeHlrxt_0igmH6SBIMcuc",
+      authDomain: "void-d9ec4.firebaseapp.com",
+      databaseURL: "https://void-d9ec4-default-rtdb.firebaseio.com",
+      projectId: "void-d9ec4",
+      storageBucket: "void-d9ec4.appspot.com",
+      messagingSenderId: "267268035851",
+      appId: "1:267268035851:web:1e5ab79c51db42160f3e0e",
+      measurementId: "G-ZYMQ3Z6LC5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const db = getDatabase();
+
+    let currentUser = null;
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        loadMessages();
+      } else {
+        window.location.href = "index.html";
+      }
+    });
+
+    function logout() {
+      signOut(auth);
+    }
+
+    function loadMessages() {
+      const dmRef = ref(db, 'dms');
+      onChildAdded(dmRef, snapshot => {
+        const dm = snapshot.val();
+        const dmId = snapshot.key;
+
+        if (dm.to === currentUser.uid || dm.from === currentUser.uid) {
+          const container = document.getElementById('dmContainer');
+          const box = document.createElement('div');
+          box.className = 'dm-box';
+          const isSender = dm.from === currentUser.uid;
+
+          const recipientName = dm.displayName || 'User';
+          const content = document.createElement('div');
+          content.className = 'dm-message';
+          content.innerHTML = `<b>${isSender ? "To" : "From"} ${recipientName}:</b> ${dm.message}`;
+
+          const countdown = document.createElement('div');
+          countdown.className = 'countdown';
+          box.appendChild(content);
+          box.appendChild(countdown);
+
+          const controls = document.createElement('div');
+          controls.className = 'dm-controls';
+
+          const closeBtn = document.createElement('button');
+          closeBtn.textContent = "Close";
+          closeBtn.onclick = () => box.remove();
+          controls.appendChild(closeBtn);
+
+          box.appendChild(controls);
+          container.appendChild(box);
+
+          // Timer
+          const expiresIn = 3600000; // 1 hour
+          const createdAt = dm.createdAt || Date.now();
+          const interval = setInterval(() => {
+            const remaining = expiresIn - (Date.now() - createdAt);
+            if (remaining <= 0) {
+              clearInterval(interval);
+              box.remove();
+              remove(ref(db, `dms/${dmId}`));
+            } else {
+              const mins = Math.floor(remaining / 60000);
+              const secs = Math.floor((remaining % 60000) / 1000);
+              countdown.textContent = `Expires in ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+          }, 1000);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
